@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const developerController = require('../controllers/DeveloperController');
-const { verifyToken } = require('../middleware/LoginMiddleware');
 
-router.post('/', verifyToken, developerController.createDeveloper);
-router.get('/', verifyToken, developerController.getAllDevelopers);
-router.get('/:id', verifyToken, developerController.getDeveloperById);
-router.put('/:id', verifyToken, developerController.updateDeveloper);
-router.delete('/:id', verifyToken, developerController.deleteDeveloper);
+router.post('/', developerController.createDeveloper);
+router.get('/', developerController.getAllDevelopers);
+router.get('/:id', developerController.getDeveloperById);
+router.put('/:id', developerController.updateDeveloper);
+router.delete('/:id', developerController.deleteDeveloper);
 
 module.exports = router;
