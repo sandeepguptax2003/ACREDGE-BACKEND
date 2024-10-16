@@ -1,20 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const seriesController = require('../controllers/SeriesController');
+const { verifyToken } = require('../middleware/LoginMiddleware');
 
-// Create a new series
-router.post('/', seriesController.createSeries);
-
-// Get all series
-router.get('/', seriesController.getAllSeries);
-
-// Get a single series by ID
-router.get('/:id', seriesController.getSeriesById);
-
-// Update a series
-router.put('/:id', seriesController.updateSeries);
-
-// Delete a series
-router.delete('/:id', seriesController.deleteSeries);
+router.post('/', verifyToken, seriesController.createSeries);
+router.get('/', verifyToken, seriesController.getAllSeries);
+router.get('/:id', verifyToken, seriesController.getSeriesById);
+router.put('/:id', verifyToken, seriesController.updateSeries);
+router.delete('/:id', verifyToken, seriesController.deleteSeries);
 
 module.exports = router;

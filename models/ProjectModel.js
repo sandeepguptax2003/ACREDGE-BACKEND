@@ -1,49 +1,103 @@
 const admin = require('firebase-admin');
-// Define the Project class
-class Project {
-  // Constructor method that initializes a project instance with the provided data
-  constructor(data) {
-    this.name = data.name;                     // Project name
-    this.reraStatus = data.reraStatus;         // RERA status (Approved/Not Approved)
-    this.reraNumber = data.reraNumber;         // RERA number (required if RERA status is Approved)
-    this.startingPrice = data.startingPrice;   // Starting price of the project
-    this.mediaLinks = data.mediaLinks || [];   // Array of media links (optional)
-    this.status = data.status;                 // Current status (Active/Inactive)
 
-    // Use Firestore server-generated timestamps for creation and updates if not provided
-    this.createdAt = data.createdAt || admin.firestore.FieldValue.serverTimestamp();
-    this.updatedAt = data.updatedAt || admin.firestore.FieldValue.serverTimestamp();
+class Project {
+  constructor(data) {
+    this.developerId = data.developerId;
+    this.name = data.name;
+    this.googleMapLink = data.googleMapLink;
+    this.whyThisProject = data.whyThisProject;
+    this.description = data.description;
+    this.launchDate = data.launchDate;
+    this.images = data.images || [];
+    this.videos = data.videos || [];
+    this.reraStatus = data.reraStatus;
+    this.reraNumber = data.reraNumber;
+    this.status = data.status;
+    this.pinCode = data.pinCode;
+    this.city = data.city;
+    this.sector = data.sector;
+    this.state = data.state;
+    this.category = data.category;
+    this.timelineStart = data.timelineStart;
+    this.timelineEnd = data.timelineEnd;
+    this.phases = data.phases;
+    this.amenities = data.amenities || [];
+    this.localityHighlights = data.localityHighlights || [];
+    this.brochureUrl = data.brochureUrl;
+    this.priceStart = data.priceStart;
+    this.priceEnd = data.priceEnd;
+    this.paymentPlan = data.paymentPlan;
+    this.unitSizes = data.unitSizes || [];
+    this.createdBy = data.createdBy;
+    this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp();
+    this.updatedBy = data.updatedBy;
+    this.updatedOn = data.updatedOn || admin.firestore.FieldValue.serverTimestamp();
   }
 
-  // Static property that defines the Firestore collection name for projects
   static collectionName = 'projects';
 
-  // Static method to validate project data before saving
   static validate(data) {
     const errors = [];
-
-    // Validation checks for required fields and proper data types
+    if (!data.developerId) errors.push('Developer ID is required');
     if (!data.name) errors.push('Project name is required');
+    if (!this.isValidUrl(data.googleMapLink)) errors.push('Valid Google Map link is required');
+    if (!data.whyThisProject || data.whyThisProject.length < 50) errors.push('Why this project must be at least 50 characters');
+    if (!data.description || data.description.length < 50) errors.push('Project description must be at least 50 characters');
+    if (!data.launchDate || isNaN(new Date(data.launchDate).getTime())) errors.push('Valid launch date is required');
     if (!['Approved', 'Not Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Approved or Not Approved');
     if (data.reraStatus === 'Approved' && !data.reraNumber) errors.push('RERA number is required for approved projects');
-    if (typeof data.startingPrice !== 'number') errors.push('Starting price must be a number');
-    if (!Array.isArray(data.mediaLinks)) errors.push('Media links must be an array');
-    if (!['Active', 'Inactive'].includes(data.status)) errors.push('Status must be either Active or Inactive');
-
-    return errors; // Return an array of validation errors
+    if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
+    if (!Number.isInteger(data.pinCode)) errors.push('Pin code must be an integer');
+    if (!['Residential', 'Commercial'].includes(data.category)) errors.push('Category must be either Residential or Commercial');
+    if (!data.timelineStart || isNaN(new Date(data.timelineStart).getTime())) errors.push('Valid timeline start date is required');
+    if (!data.timelineEnd || isNaN(new Date(data.timelineEnd).getTime())) errors.push('Valid timeline end date is required');
+    if (!Number.isInteger(data.phases)) errors.push('Phases must be an integer');
+    if (!Number.isInteger(data.priceStart)) errors.push('Price start must be an integer');
+    if (!Number.isInteger(data.priceEnd)) errors.push('Price end must be an integer');
+    return errors;
   }
 
-  // Method to convert a project instance into a Firestore-compatible format
+  static isValidUrl(string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   toFirestore() {
     return {
+      developerId: this.developerId,
       name: this.name,
+      googleMapLink: this.googleMapLink,
+      whyThisProject: this.whyThisProject,
+      description: this.description,
+      launchDate: this.launchDate,
+      images: this.images,
+      videos: this.videos,
       reraStatus: this.reraStatus,
       reraNumber: this.reraNumber,
-      startingPrice: this.startingPrice,
-      mediaLinks: this.mediaLinks,
       status: this.status,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      pinCode: this.pinCode,
+      city: this.city,
+      sector: this.sector,
+      state: this.state,
+      category: this.category,
+      timelineStart: this.timelineStart,
+      timelineEnd: this.timelineEnd,
+      phases: this.phases,
+      amenities: this.amenities,
+      localityHighlights: this.localityHighlights,
+      brochureUrl: this.brochureUrl,
+      priceStart: this.priceStart,
+      priceEnd: this.priceEnd,
+      paymentPlan: this.paymentPlan,
+      unitSizes: this.unitSizes,
+      createdBy: this.createdBy,
+      createdOn: this.createdOn,
+      updatedBy: this.updatedBy,
+      updatedOn: this.updatedOn
     };
   }
 }

@@ -1,43 +1,58 @@
 const admin = require('firebase-admin');
 
-// Define the Developer class
 class Developer {
-  // Constructor method that initializes a developer instance with provided data
   constructor(data) {
-    this.name = data.name;                       // Developer's name
-    this.address = data.address;                 // Developer's address
-    this.incorporationDate = data.incorporationDate; // Date of incorporation
-    this.totalProjectsDelivered = data.totalProjectsDelivered;  // Number of projects delivered
-    this.totalSqFtDelivered = data.totalSqFtDelivered; // Total square footage delivered by the developer
-    this.reasonForChoosing = data.reasonForChoosing; // Reason why the developer was chosen
-    this.websiteLink = data.websiteLink;         // Link to the developer's website
-    this.status = data.status;                   // Current status (Active/Inactive)
-    
-    // Timestamps: Use server-generated timestamps for creation and updates
-    this.createdAt = data.createdAt || admin.firestore.FieldValue.serverTimestamp();
-    this.updatedAt = data.updatedAt || admin.firestore.FieldValue.serverTimestamp();
+    this.name = data.name.toUpperCase();
+    this.address = data.address;
+    this.incorporationDate = data.incorporationDate;
+    this.totalProjectsDelivered = data.totalProjectsDelivered;
+    this.totalSqFtDelivered = data.totalSqFtDelivered;
+    this.description = data.description;
+    this.websiteLink = data.websiteLink;
+    this.logoUrl = data.logoUrl;
+    this.age = this.calculateAge(data.incorporationDate);
+    this.status = data.status;
+    this.createdBy = data.createdBy;
+    this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp();
+    this.updatedBy = data.updatedBy;
+    this.updatedOn = data.updatedOn || admin.firestore.FieldValue.serverTimestamp();
   }
 
-  // Static property that defines the Firestore collection name for developers
   static collectionName = 'developers';
 
-  // Static method to validate developer data before saving
   static validate(data) {
     const errors = [];
-
-    // Validation checks for each required field and expected data types
-    if (!data.name) errors.push('Developer name is required');
+    if (!data.name || !/^[A-Z0-9\s]+$/.test(data.name)) errors.push('Developer name is required and must be in capital letters');
     if (!data.address) errors.push('Address is required');
-    if (!data.incorporationDate) errors.push('Incorporation date is required');
-    if (typeof data.totalProjectsDelivered !== 'number') errors.push('Total projects delivered must be a number');
-    if (typeof data.totalSqFtDelivered !== 'number') errors.push('Total sq ft delivered must be a number');
-    if (!data.websiteLink) errors.push('Website link is required');
-    if (!['Active', 'Inactive'].includes(data.status)) errors.push('Status must be either Active or Inactive');
-
-    return errors; // Return an array of validation errors
+    if (!data.incorporationDate || isNaN(new Date(data.incorporationDate).getTime())) errors.push('Valid incorporation date is required');
+    if (!Number.isInteger(data.totalProjectsDelivered)) errors.push('Total projects delivered must be an integer');
+    if (!Number.isInteger(data.totalSqFtDelivered)) errors.push('Total sq ft delivered must be an integer');
+    if (!data.description || data.description.length < 50) errors.push('Description must be at least 50 characters long');
+    if (!data.websiteLink || !this.isValidUrl(data.websiteLink)) errors.push('Valid website link is required');
+    if (!data.logoUrl || !this.isValidImageFormat(data.logoUrl)) errors.push('Logo must be a PNG or JPG file');
+    if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
+    return errors;
   }
 
-  // Method to convert developer instance to Firestore-compatible format
+  static isValidUrl(string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static isValidImageFormat(filename) {
+    return /\.(jpg|jpeg|png)$/i.test(filename);
+  }
+
+  calculateAge(incorporationDate) {
+    const ageDifMs = Date.now() - new Date(incorporationDate).getTime();
+    const ageDate = new Date(ageDifMs);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  }
+
   toFirestore() {
     return {
       name: this.name,
@@ -45,11 +60,15 @@ class Developer {
       incorporationDate: this.incorporationDate,
       totalProjectsDelivered: this.totalProjectsDelivered,
       totalSqFtDelivered: this.totalSqFtDelivered,
-      reasonForChoosing: this.reasonForChoosing,
+      description: this.description,
       websiteLink: this.websiteLink,
+      logoUrl: this.logoUrl,
+      age: this.age,
       status: this.status,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      createdBy: this.createdBy,
+      createdOn: this.createdOn,
+      updatedBy: this.updatedBy,
+      updatedOn: this.updatedOn
     };
   }
 }
