@@ -1,30 +1,20 @@
-const { db } = require('../config/firebase');
 const Developer = require('../models/DeveloperModel');
+const { db } = require('../config/firebase');
 
 exports.createDeveloper = async (req, res) => {
   try {
-    const developerData = {
-      ...req.body,
-      name: req.body.name.toUpperCase(),
-      createdBy: req.user.email,
-      updatedBy: req.user.email,
-      createdOn: new Date(),
-      updatedOn: new Date()
-    };
-
-    const developer = new Developer(developerData);
-    const errors = Developer.validate(developer);
-
+    const developerData = req.body;
+    const errors = Developer.validate(developerData);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
+    const developer = new Developer(developerData);
     const docRef = await db.collection(Developer.collectionName).add(developer.toFirestore());
     
-    res.status(201).json({ id: docRef.id, ...developer.toFirestore() });
+    res.status(201).json({ id: docRef.id, ...developer });
   } catch (error) {
-    console.error("Error creating developer:", error);
-    res.status(500).json({ error: "An error occurred while creating the developer" });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -41,11 +31,9 @@ exports.getAllDevelopers = async (req, res) => {
 exports.getDeveloperById = async (req, res) => {
   try {
     const docRef = await db.collection(Developer.collectionName).doc(req.params.id).get();
-    
     if (!docRef.exists) {
       return res.status(404).json({ message: 'Developer not found' });
     }
-    
     res.status(200).json({ id: docRef.id, ...docRef.data() });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -55,20 +43,13 @@ exports.getDeveloperById = async (req, res) => {
 exports.updateDeveloper = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = {
-      ...req.body,
-      name: req.body.name.toUpperCase(),
-      updatedBy: req.user.email,
-      updatedOn: new Date()
-    };
-
-    const developer = new Developer(updateData);
-    const errors = Developer.validate(developer);
-
+    const updatedData = req.body;
+    const errors = Developer.validate(updatedData);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
+    const developer = new Developer(updatedData);
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
     
     res.status(200).json({ message: 'Developer updated successfully' });

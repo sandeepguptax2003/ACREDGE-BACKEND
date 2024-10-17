@@ -1,8 +1,6 @@
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Firebase service account configuration
-// We're pulling these values from environment variables for security
 const serviceAccount = {
   type: process.env.FIREBASE_TYPE,
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -16,15 +14,10 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
 };
 
-// Initialize Firebase Admin SDK
-// This gives our server access to Firebase services
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
 
-module.exports = {
-  admin,
-  db
-};
+module.exports = { admin, db };

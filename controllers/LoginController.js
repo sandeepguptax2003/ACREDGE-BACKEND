@@ -1,4 +1,4 @@
-const admin = require('../config/firebase');
+const { admin } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const NodeCache = require('node-cache');

@@ -1,24 +1,18 @@
-const { db } = require('../config/firebase');
 const Series = require('../models/SeriesModel');
+const { db } = require('../config/firebase');
 
 exports.createSeries = async (req, res) => {
   try {
-    const seriesData = {
-      ...req.body,
-      createdBy: req.user.email,
-      updatedBy: req.user.email
-    };
-
-    const series = new Series(seriesData);
-    const errors = Series.validate(series);
-
+    const seriesData = req.body;
+    const errors = Series.validate(seriesData);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
+    const series = new Series(seriesData);
     const docRef = await db.collection(Series.collectionName).add(series.toFirestore());
     
-    res.status(201).json({ id: docRef.id, ...series.toFirestore() });
+    res.status(201).json({ id: docRef.id, ...series });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -37,11 +31,9 @@ exports.getAllSeries = async (req, res) => {
 exports.getSeriesById = async (req, res) => {
   try {
     const docRef = await db.collection(Series.collectionName).doc(req.params.id).get();
-    
     if (!docRef.exists) {
       return res.status(404).json({ message: 'Series not found' });
     }
-    
     res.status(200).json({ id: docRef.id, ...docRef.data() });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -51,19 +43,13 @@ exports.getSeriesById = async (req, res) => {
 exports.updateSeries = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = {
-      ...req.body,
-      updatedBy: req.user.email,
-      updatedOn: new Date()
-    };
-
-    const series = new Series(updateData);
-    const errors = Series.validate(series);
-
+    const updatedData = req.body;
+    const errors = Series.validate(updatedData);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
+    const series = new Series(updatedData);
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
     
     res.status(200).json({ message: 'Series updated successfully' });
