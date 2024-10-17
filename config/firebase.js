@@ -22,5 +22,9 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Export the admin object for use in other parts of the app
-module.exports = admin;
+const db = admin.firestore();
+
+module.exports = {
+  admin,
+  db
+};
