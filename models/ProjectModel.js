@@ -28,9 +28,9 @@ class Project {
     this.priceEnd = data.priceEnd;
     this.paymentPlan = data.paymentPlan;
     this.unitSizes = data.unitSizes || [];
-    this.createdBy = data.createdBy;
+    this.createdBy = data.createdBy || admin.firestore.FieldValue.serverTimestamp();
     this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp();
-    this.updatedBy = data.updatedBy;
+    this.updatedBy = data.updatedBy || admin.firestore.FieldValue.serverTimestamp();
     this.updatedOn = data.updatedOn || admin.firestore.FieldValue.serverTimestamp();
   }
 

@@ -23,9 +23,9 @@ class Series {
     this.totalWashrooms = data.totalWashrooms;
     this.hasServantArea = data.hasServantArea;
     this.status = data.status;
-    this.createdBy = data.createdBy;
+    this.createdBy = data.createdBy || admin.firestore.FieldValue.serverTimestamp();
     this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp();
-    this.updatedBy = data.updatedBy;
+    this.updatedBy = data.updatedBy || admin.firestore.FieldValue.serverTimestamp();
     this.updatedOn = data.updatedOn || admin.firestore.FieldValue.serverTimestamp();
   }
 
