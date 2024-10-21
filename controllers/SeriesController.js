@@ -9,6 +9,9 @@ exports.createSeries = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    seriesData.createdBy = req.user.email;
+    seriesData.updatedBy = req.user.email;
+
     const series = new Series(seriesData);
     const docRef = await db.collection(Series.collectionName).add(series.toFirestore());
     
@@ -48,6 +51,8 @@ exports.updateSeries = async (req, res) => {
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
+
+    updatedData.updatedBy = req.user.email;
 
     const series = new Series(updatedData);
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());

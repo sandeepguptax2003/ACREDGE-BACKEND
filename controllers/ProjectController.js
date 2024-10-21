@@ -9,6 +9,9 @@ exports.createProject = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    projectData.createdBy = req.user.email;
+    projectData.updatedBy = req.user.email;
+
     const project = new Project(projectData);
     const docRef = await db.collection(Project.collectionName).add(project.toFirestore());
     
@@ -48,6 +51,8 @@ exports.updateProject = async (req, res) => {
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
+
+    updatedData.updatedBy = req.user.email;
 
     const project = new Project(updatedData);
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());

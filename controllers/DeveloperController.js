@@ -9,6 +9,9 @@ exports.createDeveloper = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    developerData.createdBy = req.user.email;
+    developerData.updatedBy = req.user.email;
+
     const developer = new Developer(developerData);
     const docRef = await db.collection(Developer.collectionName).add(developer.toFirestore());
     
@@ -48,6 +51,8 @@ exports.updateDeveloper = async (req, res) => {
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
+
+    updatedData.updatedBy = req.user.email;
 
     const developer = new Developer(updatedData);
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());

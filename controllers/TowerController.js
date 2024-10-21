@@ -9,6 +9,9 @@ exports.createTower = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    towerData.createdBy = req.user.email;
+    towerData.updatedBy = req.user.email;
+
     const tower = new Tower(towerData);
     const docRef = await db.collection(Tower.collectionName).add(tower.toFirestore());
     
@@ -48,6 +51,8 @@ exports.updateTower = async (req, res) => {
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
+
+    updatedData.updatedBy = req.user.email;
 
     const tower = new Tower(updatedData);
     await db.collection(Tower.collectionName).doc(id).update(tower.toFirestore());
