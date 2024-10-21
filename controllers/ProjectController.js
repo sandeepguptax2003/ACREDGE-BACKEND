@@ -64,7 +64,7 @@ exports.updateProject = async (req, res) => {
     }
 
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
-    if (!ProjectDoc.exists) {
+    if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
