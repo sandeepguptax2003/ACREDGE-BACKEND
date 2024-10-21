@@ -9,6 +9,10 @@ exports.createDeveloper = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     developerData.createdBy = req.user.email;
     developerData.updatedBy = req.user.email;
 
@@ -17,6 +21,7 @@ exports.createDeveloper = async (req, res) => {
     
     res.status(201).json({ id: docRef.id, ...developer });
   } catch (error) {
+    console.error('Error in Create Developer:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -52,6 +57,10 @@ exports.updateDeveloper = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     updatedData.updatedBy = req.user.email;
 
     const developer = new Developer(updatedData);
@@ -59,6 +68,7 @@ exports.updateDeveloper = async (req, res) => {
     
     res.status(200).json({ message: 'Developer updated successfully' });
   } catch (error) {
+    console.error('Error in Update Developer:', error);
     res.status(500).json({ error: error.message });
   }
 };

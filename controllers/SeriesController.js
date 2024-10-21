@@ -9,6 +9,10 @@ exports.createSeries = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     seriesData.createdBy = req.user.email;
     seriesData.updatedBy = req.user.email;
 
@@ -17,6 +21,7 @@ exports.createSeries = async (req, res) => {
     
     res.status(201).json({ id: docRef.id, ...series });
   } catch (error) {
+    console.error('Error in Create Series:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -52,6 +57,10 @@ exports.updateSeries = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     updatedData.updatedBy = req.user.email;
 
     const series = new Series(updatedData);
@@ -59,6 +68,7 @@ exports.updateSeries = async (req, res) => {
     
     res.status(200).json({ message: 'Series updated successfully' });
   } catch (error) {
+    console.error('Error in Update Series:', error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -126,7 +126,7 @@ exports.isAuthenticated = async (req, res, next) => {
     const cachedToken = tokenCache.get(decoded.email);
     if (cachedToken === token) {
       console.log(`Token found in cache for email: ${decoded.email}`);
-      req.user = decoded;
+      req.user = { email: decoded.email };
       return next();
     }
 
@@ -142,7 +142,7 @@ exports.isAuthenticated = async (req, res, next) => {
     tokenCache.set(decoded.email, token);
     console.log(`Token cached for email: ${decoded.email}`);
 
-    req.user = decoded;
+    req.user = { email: decoded.email };
     console.log(`User authenticated: ${decoded.email}`);
     next();
   } catch (error) {

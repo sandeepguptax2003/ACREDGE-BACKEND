@@ -9,6 +9,10 @@ exports.createProject = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     projectData.createdBy = req.user.email;
     projectData.updatedBy = req.user.email;
 
@@ -17,6 +21,7 @@ exports.createProject = async (req, res) => {
     
     res.status(201).json({ id: docRef.id, ...project });
   } catch (error) {
+    console.error('Error in Create Project:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -52,6 +57,10 @@ exports.updateProject = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     updatedData.updatedBy = req.user.email;
 
     const project = new Project(updatedData);
@@ -59,6 +68,7 @@ exports.updateProject = async (req, res) => {
     
     res.status(200).json({ message: 'Project updated successfully' });
   } catch (error) {
+    console.error('Error in Update Project:', error);
     res.status(500).json({ error: error.message });
   }
 };

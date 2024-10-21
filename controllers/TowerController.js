@@ -9,6 +9,10 @@ exports.createTower = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     towerData.createdBy = req.user.email;
     towerData.updatedBy = req.user.email;
 
@@ -17,6 +21,7 @@ exports.createTower = async (req, res) => {
     
     res.status(201).json({ id: docRef.id, ...tower });
   } catch (error) {
+    console.error('Error in Create Tower:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -52,6 +57,10 @@ exports.updateTower = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     updatedData.updatedBy = req.user.email;
 
     const tower = new Tower(updatedData);
@@ -59,6 +68,7 @@ exports.updateTower = async (req, res) => {
     
     res.status(200).json({ message: 'Tower updated successfully' });
   } catch (error) {
+    console.error('Error in Update Tower:', error);
     res.status(500).json({ error: error.message });
   }
 };
