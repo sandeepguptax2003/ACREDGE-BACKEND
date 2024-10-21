@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const developerController = require('../controllers/DeveloperController');
-const { verifyToken } = require('../middleware/LoginMiddleware');
 
 router.post('/', developerController.createDeveloper);
 router.get('/', developerController.getAllDevelopers);

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const towerController = require('../controllers/TowerController');
-const { verifyToken } = require('../middleware/LoginMiddleware');
 
 router.post('/', towerController.createTower);
 router.get('/', towerController.getAllTowers);
