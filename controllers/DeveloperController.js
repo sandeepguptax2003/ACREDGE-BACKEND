@@ -14,7 +14,9 @@ exports.createDeveloper = async (req, res) => {
     }
 
     developerData.createdBy = req.user.email;
-    developerData.updatedBy = req.user.email;
+    developerData.createdOn = new Date();
+    developerData.updatedBy = null;
+    developerData.updatedOn = null;
 
     const developer = new Developer(developerData);
     const docRef = await db.collection(Developer.collectionName).add(developer.toFirestore());
@@ -61,7 +63,16 @@ exports.updateDeveloper = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
+    const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
+    if (!developerDoc.exists) {
+      return res.status(404).json({ message: 'Developer not found' });
+    }
+
+    const existingData = developerDoc.data();
+    updatedData.createdBy = existingData.createdBy;
+    updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
+    updatedData.updatedOn = new Date();
 
     const developer = new Developer(updatedData);
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());

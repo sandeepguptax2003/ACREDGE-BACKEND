@@ -14,7 +14,9 @@ exports.createTower = async (req, res) => {
     }
 
     towerData.createdBy = req.user.email;
-    towerData.updatedBy = req.user.email;
+    towerData.createdOn = new Date();
+    towerData.updatedBy = null;
+    towerData.updatedOn = null;
 
     const tower = new Tower(towerData);
     const docRef = await db.collection(Tower.collectionName).add(tower.toFirestore());
@@ -61,7 +63,16 @@ exports.updateTower = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
+    const towerDoc = await db.collection(Tower.collectionName).doc(id).get();
+    if (!towerDoc.exists) {
+      return res.status(404).json({ message: 'Tower not found' });
+    }
+
+    const existingData = towerDoc.data();
+    updatedData.createdBy = existingData.createdBy;
+    updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
+    updatedData.updatedOn = new Date();
 
     const tower = new Tower(updatedData);
     await db.collection(Tower.collectionName).doc(id).update(tower.toFirestore());

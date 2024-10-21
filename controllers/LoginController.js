@@ -105,14 +105,14 @@ exports.verifyOTP = async (req, res) => {
 exports.isAuthenticated = async (req, res, next) => {
   try {
     console.log('Entering isAuthenticated middleware');
-    const token = req.cookies.token;
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-      console.log('No token provided in cookies');
+      console.log('No token provided in cookies or authorization header');
       return res.status(401).json({ message: "No token provided." });
     }
 
-    console.log(`Token found in cookies: ${token.substring(0, 20)}...`);
+    console.log(`Token found: ${token.substring(0, 20)}...`);
 
     let decoded;
     try {

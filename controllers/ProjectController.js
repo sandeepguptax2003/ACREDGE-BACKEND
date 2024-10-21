@@ -14,7 +14,9 @@ exports.createProject = async (req, res) => {
     }
 
     projectData.createdBy = req.user.email;
-    projectData.updatedBy = req.user.email;
+    projectData.createdOn = new Date();
+    projectData.updatedBy = null;
+    projectData.updatedOn = null;
 
     const project = new Project(projectData);
     const docRef = await db.collection(Project.collectionName).add(project.toFirestore());
@@ -61,7 +63,16 @@ exports.updateProject = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
+    const projectDoc = await db.collection(Project.collectionName).doc(id).get();
+    if (!ProjectDoc.exists) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const existingData = projectDoc.data();
+    updatedData.createdBy = existingData.createdBy;
+    updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
+    updatedData.updatedOn = new Date();
 
     const project = new Project(updatedData);
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());

@@ -14,7 +14,9 @@ exports.createSeries = async (req, res) => {
     }
 
     seriesData.createdBy = req.user.email;
-    seriesData.updatedBy = req.user.email;
+    seriesData.createdOn = new Date();
+    seriesData.updatedBy = null;
+    seriesData.updatedOn = null;
 
     const series = new Series(seriesData);
     const docRef = await db.collection(Series.collectionName).add(series.toFirestore());
@@ -61,7 +63,16 @@ exports.updateSeries = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
+    const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
+    if (!seriesDoc.exists) {
+      return res.status(404).json({ message: 'Series not found' });
+    }
+
+    const existingData = seriesDoc.data();
+    updatedData.createdBy = existingData.createdBy;
+    updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
+    updatedData.updatedOn = new Date();
 
     const series = new Series(updatedData);
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
