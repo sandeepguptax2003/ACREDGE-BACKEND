@@ -20,6 +20,7 @@ const uploadToFirebase = async (file, folder) => {
     resumable: false
   });
 
+  //bucket
   return new Promise((resolve, reject) => {
     blobStream.on('error', (error) => reject(error));
     blobStream.on('finish', async () => {
