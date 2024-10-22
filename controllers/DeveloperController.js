@@ -1,11 +1,28 @@
 const Developer = require('../models/DeveloperModel');
 const { db } = require('../config/firebase');
+const { uploadMultipleFiles, deleteMultipleFiles } = require('../utils/FilesUpload');
 
 exports.createDeveloper = async (req, res) => {
   try {
     const developerData = req.body;
+    const files = req.files;
+    
+    // Handle file uploads
+    if (files) {
+      if (files.images) {
+        developerData.images = await uploadMultipleFiles(files.images, 'developers/images');
+      }
+      if (files.videos) {
+        developerData.videos = await uploadMultipleFiles(files.videos, 'developers/videos');
+      }
+    }
+
     const errors = Developer.validate(developerData);
+
     if (errors.length > 0) {
+      // Delete uploaded files if validation fails
+      await deleteMultipleFiles(developersData.images);
+      await deleteMultipleFiles(developersData.videos);
       return res.status(400).json({ errors });
     }
 
@@ -54,7 +71,31 @@ exports.updateDeveloper = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
-    const errors = Developer.validate(updatedData);
+    const files = req.files;
+
+    const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
+    if (!developerDoc.exists) {
+      return res.status(404).json({ message: 'Developer not found' });
+    }
+
+    const existingData = projectDoc.data();
+
+    // Handle file uploads and deletions
+    if (files) {
+      if (files.images) {
+        // Delete old images if specified in req.body.deleteImages
+        if (req.body.deleteImages) {
+          const deleteImages = JSON.parse(req.body.deleteImages);
+          await deleteMultipleFiles(deleteImages);
+          updatedData.images = existingData.images.filter(url => !deleteImages.includes(url));
+        }
+        // Add new images
+        const newImages = await uploadMultipleFiles(files.images, 'developers/logos');
+        updatedData.images = [...(updatedData.images || []), ...newImages];
+      }
+    }
+
+    const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
@@ -63,18 +104,12 @@ exports.updateDeveloper = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
-    if (!developerDoc.exists) {
-      return res.status(404).json({ message: 'Developer not found' });
-    }
-
-    const existingData = developerDoc.data();
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    const developer = new Developer(updatedData);
+    const developer = new Developer({ ...existingData, ...updatedData });
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
     
     res.status(200).json({ message: 'Developer updated successfully' });

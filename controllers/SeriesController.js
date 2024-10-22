@@ -1,11 +1,28 @@
 const Series = require('../models/SeriesModel');
 const { db } = require('../config/firebase');
+const { uploadMultipleFiles, deleteMultipleFiles } = require('../utils/FilesUpload');
 
 exports.createSeries = async (req, res) => {
   try {
     const seriesData = req.body;
+    const files = req.files;
+
+    // Handle file uploads
+    if (files) {
+      if (files.images) {
+        seriesData.images = await uploadMultipleFiles(files.images, 'series/images');
+      }
+      if (files.videos) {
+        seriesData.videos = await uploadMultipleFiles(files.videos, 'series/videos');
+      }
+    }
+
     const errors = Series.validate(seriesData);
+
     if (errors.length > 0) {
+      // Delete uploaded files if validation fails
+      await deleteMultipleFiles(seriesData.images);
+      await deleteMultipleFiles(seriesData.videos);
       return res.status(400).json({ errors });
     }
 
@@ -54,7 +71,42 @@ exports.updateSeries = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
-    const errors = Series.validate(updatedData);
+    const files = req.files;
+
+    const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
+    if (!seriesDoc.exists) {
+      return res.status(404).json({ message: 'Series not found' });
+    }
+
+    const existingData = projectDoc.data();
+
+    // Handle file uploads and deletions
+    if (files) {
+      if (files.images) {
+        // Delete old images if specified in req.body.deleteImages
+        if (req.body.deleteImages) {
+          const deleteImages = JSON.parse(req.body.deleteImages);
+          await deleteMultipleFiles(deleteImages);
+          updatedData.images = existingData.images.filter(url => !deleteImages.includes(url));
+        }
+        // Add new images
+        const newImages = await uploadMultipleFiles(files.images, 'series/images');
+        updatedData.images = [...(updatedData.images || []), ...newImages];
+      }
+
+      if (files.videos) {
+        // Handle video updates similarly to images
+        if (req.body.deleteVideos) {
+          const deleteVideos = JSON.parse(req.body.deleteVideos);
+          await deleteMultipleFiles(deleteVideos);
+          updatedData.videos = existingData.videos.filter(url => !deleteVideos.includes(url));
+        }
+        const newVideos = await uploadMultipleFiles(files.videos, 'series/videos');
+        updatedData.videos = [...(updatedData.videos || []), ...newVideos];
+      }
+    }
+
+    const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
@@ -63,18 +115,12 @@ exports.updateSeries = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
-    if (!seriesDoc.exists) {
-      return res.status(404).json({ message: 'Series not found' });
-    }
-
-    const existingData = seriesDoc.data();
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    const series = new Series(updatedData);
+    const series = new Series({ ...existingData, ...updatedData });
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
     
     res.status(200).json({ message: 'Series updated successfully' });
