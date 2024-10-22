@@ -1,6 +1,6 @@
 const Developer = require('../models/DeveloperModel');
 const { db } = require('../config/firebase');
-const { uploadMultipleFiles, deleteMultipleFiles } = require('../utils/FilesUpload');
+const { uploadMultipleFiles, deleteMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
 
 exports.createDeveloper = async (req, res) => {
   try {
@@ -21,8 +21,8 @@ exports.createDeveloper = async (req, res) => {
 
     if (errors.length > 0) {
       // Delete uploaded files if validation fails
-      await deleteMultipleFiles(developersData.images);
-      await deleteMultipleFiles(developersData.videos);
+      if (developerData.images) await deleteMultipleFiles(developerData.images);
+      if (developerData.videos) await deleteMultipleFiles(developerData.videos);
       return res.status(400).json({ errors });
     }
 
@@ -78,7 +78,7 @@ exports.updateDeveloper = async (req, res) => {
       return res.status(404).json({ message: 'Developer not found' });
     }
 
-    const existingData = projectDoc.data();
+    const existingData = developerDoc.data();
 
     // Handle file uploads and deletions
     if (files) {
@@ -90,12 +90,23 @@ exports.updateDeveloper = async (req, res) => {
           updatedData.images = existingData.images.filter(url => !deleteImages.includes(url));
         }
         // Add new images
-        const newImages = await uploadMultipleFiles(files.images, 'developers/logos');
+        const newImages = await uploadMultipleFiles(files.images, 'developers/images');
         updatedData.images = [...(updatedData.images || []), ...newImages];
+      }
+
+      if (files.videos) {
+        // Handle video updates similarly to images
+        if (req.body.deleteVideos) {
+          const deleteVideos = JSON.parse(req.body.deleteVideos);
+          await deleteMultipleFiles(deleteVideos);
+          updatedData.videos = existingData.videos.filter(url => !deleteVideos.includes(url));
+        }
+        const newVideos = await uploadMultipleFiles(files.videos, 'developers/videos');
+        updatedData.videos = [...(updatedData.videos || []), ...newVideos];
       }
     }
 
-    const errors = Project.validate({ ...existingData, ...updatedData });
+    const errors = Developer.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }

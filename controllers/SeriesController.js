@@ -1,6 +1,6 @@
 const Series = require('../models/SeriesModel');
 const { db } = require('../config/firebase');
-const { uploadMultipleFiles, deleteMultipleFiles } = require('../utils/FilesUpload');
+const { uploadMultipleFiles, deleteMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
 
 exports.createSeries = async (req, res) => {
   try {
@@ -21,8 +21,8 @@ exports.createSeries = async (req, res) => {
 
     if (errors.length > 0) {
       // Delete uploaded files if validation fails
-      await deleteMultipleFiles(seriesData.images);
-      await deleteMultipleFiles(seriesData.videos);
+      if (seriesData.images) await deleteMultipleFiles(seriesData.images);
+      if (seriesData.videos) await deleteMultipleFiles(seriesData.videos);
       return res.status(400).json({ errors });
     }
 
@@ -78,7 +78,7 @@ exports.updateSeries = async (req, res) => {
       return res.status(404).json({ message: 'Series not found' });
     }
 
-    const existingData = projectDoc.data();
+    const existingData = seriesDoc.data();
 
     // Handle file uploads and deletions
     if (files) {
@@ -106,7 +106,7 @@ exports.updateSeries = async (req, res) => {
       }
     }
 
-    const errors = Project.validate({ ...existingData, ...updatedData });
+    const errors = Series.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }

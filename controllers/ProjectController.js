@@ -1,6 +1,6 @@
 const Project = require('../models/ProjectModel');
 const { db } = require('../config/firebase');
-const { uploadMultipleFiles, deleteMultipleFiles } = require('../utils/FilesUpload');
+const { uploadMultipleFiles, deleteMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
 
 exports.createProject = async (req, res) => {
   try {
