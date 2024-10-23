@@ -6,7 +6,7 @@ const storage = multer.memoryStorage();
 
 // Define file size limits in bytes
 const FILE_LIMITS = {
-  logo: 2 * 1024 * 1024, // 2MB
+  logoUrl: 2 * 1024 * 1024, // 2MB
   images: 10 * 1024 * 1024, // 10MB
   videos: 50 * 1024 * 1024, // 50MB
   brochureUrl: 50 * 1024 * 1024, // 50MB
@@ -16,7 +16,7 @@ const FILE_LIMITS = {
 
 // Define maximum counts for each file type
 const MAX_COUNTS = {
-  logo: 1,
+  logoUrl: 1,
   images: 20,
   videos: 5,
   brochureUrl: 3,
@@ -38,7 +38,7 @@ const fileFilter = (req, file, cb) => {
   try {
     // Check file type based on field name
     switch (file.fieldname) {
-      case 'logo':
+      case 'logoUrl':
         if (!allowedImageTypes.test(ext)) {
           throw new Error('Logo must be JPG or PNG format');
         }
@@ -86,7 +86,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const uploadFields = [
-  { name: 'logo', maxCount: MAX_COUNTS.logo },
+  { name: 'logoUrl', maxCount: MAX_COUNTS.logoUrl },
   { name: 'images', maxCount: MAX_COUNTS.images },
   { name: 'videos', maxCount: MAX_COUNTS.videos },
   { name: 'brochureUrl', maxCount: MAX_COUNTS.brochureUrl },
