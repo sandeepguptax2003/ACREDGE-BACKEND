@@ -30,61 +30,59 @@ const fileFilter = (req, file, cb) => {
   const allowedPdfTypes = /pdf/;
   const ext = path.extname(file.originalname).toLowerCase().substring(1);
   
-  let error = null;
-  let isValid = true;
-
-  // Check file type based on field name
-  switch (file.fieldname) {
-    case 'logo':
-      if (!allowedImageTypes.test(ext)) {
-        error = new Error('Logo must be JPG or PNG format');
-        isValid = false;
-      }
-      break;
-
-    case 'images':
-    case 'insideImagesUrls':
-      if (!allowedImageTypes.test(ext)) {
-        error = new Error('Images must be JPG or PNG format');
-        isValid = false;
-      }
-      break;
-
-    case 'videos':
-    case 'insideVideosUrls':
-      if (!allowedVideoTypes.test(ext)) {
-        error = new Error('Videos must be MP4 or MOV format');
-        isValid = false;
-      }
-      break;
-
-    case 'brochureUrl':
-      if (!allowedPdfTypes.test(ext)) {
-        error = new Error('Brochure must be PDF format');
-        isValid = false;
-      }
-      break;
-
-    default:
-      error = new Error('Invalid field name');
-      isValid = false;
+  // Validate if the field name is expected
+  if (!Object.keys(FILE_LIMITS).includes(file.fieldname)) {
+    return cb(new Error(`Invalid field name: ${file.fieldname}`), false);
   }
 
-  // Check file size
-  const fileSize = parseInt(req.headers['content-length']);
-  if (fileSize > FILE_LIMITS[file.fieldname]) {
-    error = new Error(`File size exceeds limit for ${file.fieldname}`);
-    isValid = false;
-  }
+  try {
+    // Check file type based on field name
+    switch (file.fieldname) {
+      case 'logo':
+        if (!allowedImageTypes.test(ext)) {
+          throw new Error('Logo must be JPG or PNG format');
+        }
+        break;
 
-  // Count existing files of the same type
-  const existingFiles = req.files ? req.files[file.fieldname] : [];
-  if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
-    error = new Error(`Maximum number of files reached for ${file.fieldname}`);
-    isValid = false;
-  }
+      case 'images':
+      case 'insideImagesUrls':
+        if (!allowedImageTypes.test(ext)) {
+          throw new Error('Images must be JPG or PNG format');
+        }
+        break;
 
-  cb(error, isValid);
+      case 'videos':
+      case 'insideVideosUrls':
+        if (!allowedVideoTypes.test(ext)) {
+          throw new Error('Videos must be MP4 or MOV format');
+        }
+        break;
+
+      case 'brochureUrl':
+        if (!allowedPdfTypes.test(ext)) {
+          throw new Error('Brochure must be PDF format');
+        }
+        break;
+
+      default:
+        throw new Error('Invalid field name');
+    }
+
+    // Check file size
+    if (file.size > FILE_LIMITS[file.fieldname]) {
+      throw new Error(`File size exceeds limit for ${file.fieldname}`);
+    }
+
+    // Count existing files of the same type
+    const existingFiles = req.files ? req.files[file.fieldname] : [];
+    if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
+      throw new Error(`Maximum number of files reached for ${file.fieldname}`);
+    }
+
+    cb(null, true);
+  } catch (error) {
+    cb(error, false);
+  }
 };
 
 const uploadFields = [
@@ -104,9 +102,23 @@ const upload = multer({
   }
 });
 
+// Error handling middleware
+const handleUploadError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({
+        error: `Unexpected field: ${err.field}. Allowed fields are: ${uploadFields.map(f => f.name).join(', ')}`
+      });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+};
+
 module.exports = { 
   upload, 
   uploadFields,
   FILE_LIMITS,
-  MAX_COUNTS
+  MAX_COUNTS,
+  handleUploadError
 };

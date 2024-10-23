@@ -10,11 +10,14 @@ const DeveloperRoutes = require("./routes/DeveloperRoutes");
 const ProjectRoutes = require("./routes/ProjectRoutes");
 const TowerRoutes = require("./routes/TowerRoutes");
 const SeriesRoutes = require("./routes/SeriesRoutes");
-const DashboardRoutes = require("./routes/DashboardRoutes")
+const DashboardRoutes = require("./routes/DashboardRoutes");
+const { handleUploadError } = require('./middleware/UploadMiddleware');
 
 const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
+
+app.use(handleUploadError);
 
 app.use(
   cors({
