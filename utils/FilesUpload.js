@@ -3,7 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const FOLDER_PATHS = {
-  logo: 'DeveloperLogo',
+  logoUrl: 'DeveloperLogo',
   images: 'ProjectImages',
   videos: 'ProjectVideos',
   brochureUrl: 'ProjectBrochures',

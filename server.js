@@ -17,8 +17,6 @@ const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
 
-app.use(handleUploadError);
-
 app.use(
   cors({
     origin: true,
@@ -33,6 +31,9 @@ app.use("/api/projects", ProjectRoutes);
 app.use("/api/towers", TowerRoutes);
 app.use("/api/series", SeriesRoutes);
 app.use('/api/dashboard', DashboardRoutes);
+
+// Error handling middleware last
+app.use(handleUploadError);
 
 const PORT = process.env.PORT || 3000;
 
