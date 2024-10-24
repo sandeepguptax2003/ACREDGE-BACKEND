@@ -73,10 +73,12 @@ const fileFilter = (req, file, cb) => {
       throw new Error(`File size exceeds limit for ${file.fieldname}`);
     }
 
-    // Count existing files of the same type
-    const existingFiles = req.files ? req.files[file.fieldname] : [];
-    if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
-      throw new Error(`Maximum number of files reached for ${file.fieldname}`);
+    // Only check file count for multiple file fields
+    if (file.fieldname !== 'logoUrl' && file.fieldname !== 'brochureUrl') {
+      const existingFiles = req.files ? req.files[file.fieldname] : [];
+      if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
+        throw new Error(`Maximum number of files reached for ${file.fieldname}`);
+      }
     }
 
     cb(null, true);
