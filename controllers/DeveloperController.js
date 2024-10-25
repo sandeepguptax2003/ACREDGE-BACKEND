@@ -6,39 +6,39 @@ exports.createDeveloper = async (req, res) => {
   try {
     const developerData = req.body;
     const files = req.files;
-    
-    // Handle file uploads
-    if (files) {
-      if (files.images) {
-        developerData.images = await uploadMultipleFiles(files.images, 'developers/images');
-      }
-      if (files.videos) {
-        developerData.videos = await uploadMultipleFiles(files.videos, 'developers/videos');
-      }
+
+    // Handle logo upload
+    if (files && files.logoUrl) {
+      const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl');
+      developerData.logoUrl = logoUrl;
     }
 
+    // Validate the data
     const errors = Developer.validate(developerData);
-
     if (errors.length > 0) {
-      // Delete uploaded files if validation fails
-      if (developerData.images) await deleteMultipleFiles(developerData.images);
-      if (developerData.videos) await deleteMultipleFiles(developerData.videos);
+      if (developerData.logoUrl) {
+        await deleteFromFirebase(developerData.logoUrl);
+      }
       return res.status(400).json({ errors });
     }
 
+    // Add metadata
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: "Authentication required" });
     }
-
     developerData.createdBy = req.user.email;
     developerData.createdOn = new Date();
     developerData.updatedBy = null;
     developerData.updatedOn = null;
 
+    // Create developer
     const developer = new Developer(developerData);
     const docRef = await db.collection(Developer.collectionName).add(developer.toFirestore());
     
-    res.status(201).json({ id: docRef.id, ...developer });
+    res.status(201).json({ 
+      id: docRef.id, 
+      ...developer.toFirestore() 
+    });
   } catch (error) {
     console.error('Error in Create Developer:', error);
     res.status(500).json({ error: error.message });
@@ -73,57 +73,66 @@ exports.updateDeveloper = async (req, res) => {
     const updatedData = req.body;
     const files = req.files;
 
+    // Get existing developer
     const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
     if (!developerDoc.exists) {
       return res.status(404).json({ message: 'Developer not found' });
     }
-
     const existingData = developerDoc.data();
 
-    // Handle file uploads and deletions
-    if (files) {
-      if (files.images) {
-        // Delete old images if specified in req.body.deleteImages
-        if (req.body.deleteImages) {
-          const deleteImages = JSON.parse(req.body.deleteImages);
-          await deleteMultipleFiles(deleteImages);
-          updatedData.images = existingData.images.filter(url => !deleteImages.includes(url));
-        }
-        // Add new images
-        const newImages = await uploadMultipleFiles(files.images, 'developers/images');
-        updatedData.images = [...(updatedData.images || []), ...newImages];
-      }
+    // Handle logo update
+    if (files && files.logoUrl) {
+      // Upload new logo first
+      try {
+        const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl');
+        updatedData.logoUrl = logoUrl;
 
-      if (files.videos) {
-        // Handle video updates similarly to images
-        if (req.body.deleteVideos) {
-          const deleteVideos = JSON.parse(req.body.deleteVideos);
-          await deleteMultipleFiles(deleteVideos);
-          updatedData.videos = existingData.videos.filter(url => !deleteVideos.includes(url));
+        // Only attempt to delete old logo after successful upload of new one
+        if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
+          try {
+            await deleteFromFirebase(existingData.logoUrl);
+            console.log('Successfully deleted old logo:', existingData.logoUrl);
+          } catch (deleteError) {
+            console.error("Error deleting old logo:", deleteError);
+            // Continue with update even if delete fails
+          }
         }
-        const newVideos = await uploadMultipleFiles(files.videos, 'developers/videos');
-        updatedData.videos = [...(updatedData.videos || []), ...newVideos];
+      } catch (uploadError) {
+        console.error("Error uploading new logo:", uploadError);
+        return res.status(500).json({ error: "Error uploading new logo." });
       }
     }
 
+    // Validate updated data
     const errors = Developer.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
+      if (updatedData.logoUrl) {
+        try {
+          await deleteFromFirebase(updatedData.logoUrl);
+        } catch (error) {
+          console.error("Error deleting invalid logo:", error);
+        }
+      }
       return res.status(400).json({ errors });
     }
 
+    // Add metadata
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: "Authentication required" });
     }
-
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
+    // Update developer
     const developer = new Developer({ ...existingData, ...updatedData });
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
     
-    res.status(200).json({ message: 'Developer updated successfully' });
+    res.status(200).json({ 
+      message: 'Developer updated successfully',
+      data: developer.toFirestore()
+    });
   } catch (error) {
     console.error('Error in Update Developer:', error);
     res.status(500).json({ error: error.message });

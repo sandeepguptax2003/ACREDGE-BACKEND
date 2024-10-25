@@ -5,8 +5,8 @@ class Developer {
     this.name = data.name.toUpperCase();
     this.address = data.address;
     this.incorporationDate = data.incorporationDate;
-    this.totalProjectsDelivered = data.totalProjectsDelivered;
-    this.totalSqFtDelivered = data.totalSqFtDelivered;
+    this.totalProjectsDelivered = parseInt(data.totalProjectsDelivered, 10);
+    this.totalSqFtDelivered = parseInt(data.totalSqFtDelivered, 10);
     this.description = data.description;
     this.websiteLink = data.websiteLink;
     this.logoUrl = data.logoUrl;
@@ -25,8 +25,12 @@ class Developer {
     if (!data.name || !/^[A-Z0-9\s]+$/.test(data.name)) errors.push('Developer name is required and must be in capital letters');
     if (!data.address) errors.push('Address is required');
     if (!data.incorporationDate || isNaN(new Date(data.incorporationDate).getTime())) errors.push('Valid incorporation date is required');
-    if (!Number.isInteger(data.totalProjectsDelivered)) errors.push('Total projects delivered must be an integer');
-    if (!Number.isInteger(data.totalSqFtDelivered)) errors.push('Total sq ft delivered must be an integer');
+    
+    if (isNaN(totalProjects)) errors.push('Total projects delivered must be an integer');
+    const totalProjects = parseInt(data.totalProjectsDelivered, 10);
+    if (isNaN(totalSqFt)) errors.push('Total sq ft delivered must be an integer');
+    const totalSqFt = parseInt(data.totalSqFtDelivered, 10);       
+      
     if (!data.description || data.description.length < 50) errors.push('Description must be at least 50 characters long');
     if (!data.websiteLink || !this.isValidUrl(data.websiteLink)) errors.push('Valid website link is required');
     if (!data.logoUrl || !this.isValidImageFormat(data.logoUrl)) errors.push('Logo must be a PNG or JPG file');

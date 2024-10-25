@@ -10,6 +10,7 @@ const FILE_LIMITS = {
   images: 10 * 1024 * 1024, // 10MB
   videos: 50 * 1024 * 1024, // 50MB
   brochureUrl: 50 * 1024 * 1024, // 50MB
+  layoutPlanUrl: 50 * 1024 * 1024, // 50MB
   insideImagesUrls: 10 * 1024 * 1024, // 10MB
   insideVideosUrls: 50 * 1024 * 1024 // 50MB
 };
@@ -19,7 +20,8 @@ const MAX_COUNTS = {
   logoUrl: 1,
   images: 20,
   videos: 5,
-  brochureUrl: 3,
+  brochureUrl: 1,
+  layoutPlanUrl: 1,
   insideImagesUrls: 20,
   insideVideosUrls: 5
 };
@@ -29,14 +31,16 @@ const fileFilter = (req, file, cb) => {
   const allowedVideoTypes = /mp4|mov/;
   const allowedPdfTypes = /pdf/;
   const ext = path.extname(file.originalname).toLowerCase().substring(1);
+
+  console.log("Filtering file:", file.originalname, "Type:", ext, "Size:", file.size);
   
-  // Validate if the field name is expected
+  
   if (!Object.keys(FILE_LIMITS).includes(file.fieldname)) {
+    console.error(`Invalid field name: ${file.fieldname}`);
     return cb(new Error(`Invalid field name: ${file.fieldname}`), false);
   }
 
   try {
-    // Check file type based on field name
     switch (file.fieldname) {
       case 'logoUrl':
         if (!allowedImageTypes.test(ext)) {
@@ -59,8 +63,9 @@ const fileFilter = (req, file, cb) => {
         break;
 
       case 'brochureUrl':
+      case 'layoutPlanUrl':
         if (!allowedPdfTypes.test(ext)) {
-          throw new Error('Brochure must be PDF format');
+          throw new Error('File must be PDF format');
         }
         break;
 
@@ -68,13 +73,14 @@ const fileFilter = (req, file, cb) => {
         throw new Error('Invalid field name');
     }
 
-    // Check file size
     if (file.size > FILE_LIMITS[file.fieldname]) {
+      console.error(`File size exceeds limit for ${file.fieldname}`);
       throw new Error(`File size exceeds limit for ${file.fieldname}`);
     }
 
-    // Only check file count for multiple file fields
-    if (file.fieldname !== 'logoUrl' && file.fieldname !== 'brochureUrl') {
+    if (file.fieldname !== 'logoUrl' && 
+        file.fieldname !== 'brochureUrl' && 
+        file.fieldname !== 'layoutPlanUrl') {
       const existingFiles = req.files ? req.files[file.fieldname] : [];
       if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
         throw new Error(`Maximum number of files reached for ${file.fieldname}`);
@@ -92,6 +98,7 @@ const uploadFields = [
   { name: 'images', maxCount: MAX_COUNTS.images },
   { name: 'videos', maxCount: MAX_COUNTS.videos },
   { name: 'brochureUrl', maxCount: MAX_COUNTS.brochureUrl },
+  { name: 'layoutPlanUrl', maxCount: MAX_COUNTS.layoutPlanUrl },
   { name: 'insideImagesUrls', maxCount: MAX_COUNTS.insideImagesUrls },
   { name: 'insideVideosUrls', maxCount: MAX_COUNTS.insideVideosUrls }
 ];
@@ -100,11 +107,10 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: Math.max(...Object.values(FILE_LIMITS)) // Set to maximum allowed file size
+    fileSize: Math.max(...Object.values(FILE_LIMITS))
   }
 });
 
-// Error handling middleware
 const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
@@ -117,8 +123,8 @@ const handleUploadError = (err, req, res, next) => {
   next(err);
 };
 
-module.exports = { 
-  upload, 
+module.exports = {
+  upload,
   uploadFields,
   FILE_LIMITS,
   MAX_COUNTS,

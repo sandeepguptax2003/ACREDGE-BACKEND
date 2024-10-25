@@ -5,9 +5,9 @@ class Tower {
     this.developerId = data.developerId;
     this.projectId = data.projectId;
     this.name = data.name;
-    this.totalFloors = data.totalFloors;
-    this.coreCount = data.coreCount;
-    this.totalUnits = data.totalUnits;
+    this.totalFloors = parseInt(data.totalFloors, 10);
+    this.coreCount = parseInt(data.coreCount, 10);
+    this.totalUnits = parseInt(data.totalUnits, 10);
     this.status = data.status;
     this.towerStatus = data.towerStatus;
     this.createdBy = data.createdBy || null;
@@ -23,9 +23,15 @@ class Tower {
     if (!data.developerId) errors.push('Developer ID is required');
     if (!data.projectId) errors.push('Project ID is required');
     if (!data.name) errors.push('Tower name is required');
-    if (!Number.isInteger(data.totalFloors)) errors.push('Total floors must be an integer');
-    if (!Number.isInteger(data.coreCount)) errors.push('Core count must be an integer');
-    if (!Number.isInteger(data.totalUnits)) errors.push('Total units must be an integer');
+    
+    // Parse and validate integer fields
+    const totalFloors = parseInt(data.totalFloors, 10);
+    const coreCount = parseInt(data.coreCount, 10);
+    const totalUnits = parseInt(data.totalUnits, 10);
+    
+    if (isNaN(totalFloors)) errors.push('Total floors must be an integer');
+    if (isNaN(coreCount)) errors.push('Core count must be an integer');
+    if (isNaN(totalUnits)) errors.push('Total units must be an integer');
     if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
     if (!['Under Construction', 'Completed'].includes(data.towerStatus)) errors.push('Tower status must be either Under Construction or Completed');
     return errors;

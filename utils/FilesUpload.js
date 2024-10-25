@@ -7,6 +7,7 @@ const FOLDER_PATHS = {
   images: 'ProjectImages',
   videos: 'ProjectVideos',
   brochureUrl: 'ProjectBrochures',
+  layoutPlanUrl: 'ProjectLayouts',
   insideImagesUrls: 'SeriesImages',
   insideVideosUrls: 'SeriesVideos'
 };
@@ -15,7 +16,7 @@ const generateFileName = (file, folder, entityId = '') => {
   const timestamp = new Date().getTime();
   const uuid = uuidv4();
   const ext = path.extname(file.originalname);
-  return `${folder}/${entityId ? entityId + '/' : ''}${timestamp}-${uuid}${ext}`;
+  return `${folder}${entityId ? '/' + entityId : ''}/${timestamp}-${uuid}${ext}`;
 };
 
 const uploadToFirebase = async (file, folder, entityId = '') => {
@@ -57,38 +58,82 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
   });
 };
 
-const deleteFromFirebase = async (fileUrl) => {
-  if (!fileUrl) return;
+const uploadMultipleFiles = async (files, folder, entityId = '') => {
+  if (!files || !Array.isArray(files)) {
+    if (files) return uploadToFirebase(files, folder, entityId);
+    return null;
+  }
   
   try {
-    const fileName = decodeURIComponent(fileUrl.split('/o/')[1].split('?')[0]);
-    await bucket.file(fileName).delete();
+    const uploadPromises = files.map(file => uploadToFirebase(file, folder, entityId));
+    const results = await Promise.all(uploadPromises);
+    return Array.isArray(files) ? results : results[0];
   } catch (error) {
-    console.error('Error deleting file:', error);
+    console.error('Error uploading files:', error);
     throw error;
   }
 };
 
-const uploadMultipleFiles = async (files, folder, entityId = '') => {
-  if (!files || !Array.isArray(files)) return [];
+const deleteFromFirebase = async (fileUrl) => {
+  if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.trim()) {
+    console.error('Invalid fileUrl provided to deleteFromFirebase:', fileUrl);
+    return;
+  }
   
   try {
-    const uploadPromises = files.map(file => uploadToFirebase(file, folder, entityId));
-    return await Promise.all(uploadPromises);
+    // Handle both full URLs and direct paths
+    let fileName;
+    if (fileUrl.startsWith('https://storage.googleapis.com/')) {
+      // Extract the bucket name and file path
+      const bucketAndPath = fileUrl.replace('https://storage.googleapis.com/', '');
+      const pathParts = bucketAndPath.split('/');
+      // Remove the bucket name from the path
+      pathParts.shift();
+      fileName = pathParts.join('/');
+    } else if (fileUrl.startsWith('gs://')) {
+      // Handle gs:// URLs
+      const bucketAndPath = fileUrl.replace('gs://', '');
+      const pathParts = bucketAndPath.split('/');
+      // Remove the bucket name from the path
+      pathParts.shift();
+      fileName = pathParts.join('/');
+    } else {
+      // Assume it's a direct path
+      fileName = fileUrl;
+    }
+
+    // Clean up the fileName
+    fileName = fileName.split('?')[0]; // Remove query parameters if any
+    fileName = decodeURIComponent(fileName); // Decode URL-encoded characters
+
+    console.log('Attempting to delete file:', fileName); // Debug log
+
+    const file = bucket.file(fileName);
+    
+    // Check if file exists before deleting
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.log('File does not exist:', fileName);
+      return;
+    }
+
+    await file.delete();
+    console.log('Successfully deleted file:', fileName);
   } catch (error) {
-    console.error('Error uploading multiple files:', error);
+    console.error('Error deleting file from Firebase:', error);
     throw error;
   }
 };
 
 const deleteMultipleFiles = async (fileUrls) => {
-  if (!fileUrls || !Array.isArray(fileUrls)) return;
+  if (!fileUrls) return;
   
+  const urls = Array.isArray(fileUrls) ? fileUrls : [fileUrls];
   try {
-    const deletePromises = fileUrls.map(url => deleteFromFirebase(url));
+    const deletePromises = urls.map(url => deleteFromFirebase(url));
     await Promise.all(deletePromises);
   } catch (error) {
-    console.error('Error deleting multiple files:', error);
+    console.error('Error deleting files:', error);
     throw error;
   }
 };
@@ -98,12 +143,14 @@ const validateFiles = (files, type, currentCount = 0) => {
   
   if (!files) return null;
   
-  const totalCount = files.length + currentCount;
+  const filesArray = Array.isArray(files) ? files : [files];
+  const totalCount = filesArray.length + currentCount;
+  
   if (totalCount > MAX_COUNTS[type]) {
     throw new Error(`Maximum ${MAX_COUNTS[type]} ${type} allowed`);
   }
 
-  files.forEach(file => {
+  filesArray.forEach(file => {
     if (file.size > FILE_LIMITS[type]) {
       throw new Error(`${type} size must be less than ${FILE_LIMITS[type] / (1024 * 1024)}MB`);
     }
