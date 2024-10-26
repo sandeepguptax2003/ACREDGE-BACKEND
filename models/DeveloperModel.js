@@ -26,10 +26,12 @@ class Developer {
     if (!data.address) errors.push('Address is required');
     if (!data.incorporationDate || isNaN(new Date(data.incorporationDate).getTime())) errors.push('Valid incorporation date is required');
     
-    if (isNaN(totalProjects)) errors.push('Total projects delivered must be an integer');
     const totalProjects = parseInt(data.totalProjectsDelivered, 10);
+    const totalSqFt = parseInt(data.totalSqFtDelivered, 10); 
+
+    if (isNaN(totalProjects)) errors.push('Total projects delivered must be an integer');  
     if (isNaN(totalSqFt)) errors.push('Total sq ft delivered must be an integer');
-    const totalSqFt = parseInt(data.totalSqFtDelivered, 10);       
+          
       
     if (!data.description || data.description.length < 50) errors.push('Description must be at least 50 characters long');
     if (!data.websiteLink || !this.isValidUrl(data.websiteLink)) errors.push('Valid website link is required');
