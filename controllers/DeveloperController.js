@@ -7,37 +7,42 @@ exports.createDeveloper = async (req, res) => {
     const developerData = req.body;
     const files = req.files;
 
-    // Handle logo upload
+    // Create document first to get ID
+    const docRef = await db.collection(Developer.collectionName).add({
+      createdBy: req.user.email,
+      createdOn: new Date(),
+    });
+    
     if (files && files.logoUrl) {
-      const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl');
+      const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', docRef.id);
       developerData.logoUrl = logoUrl;
     }
 
-    // Validate the data
     const errors = Developer.validate(developerData);
     if (errors.length > 0) {
       if (developerData.logoUrl) {
         await deleteFromFirebase(developerData.logoUrl);
       }
+      await docRef.delete(); // Clean up the document if validation fails
       return res.status(400).json({ errors });
     }
 
-    // Add metadata
     if (!req.user || !req.user.email) {
+      await docRef.delete();
       return res.status(401).json({ message: "Authentication required" });
     }
+
     developerData.createdBy = req.user.email;
     developerData.createdOn = new Date();
     developerData.updatedBy = null;
     developerData.updatedOn = null;
 
-    // Create developer
     const developer = new Developer(developerData);
-    const docRef = await db.collection(Developer.collectionName).add(developer.toFirestore());
-    
-    res.status(201).json({ 
-      id: docRef.id, 
-      ...developer.toFirestore() 
+    await docRef.update(developer.toFirestore());
+
+    res.status(201).json({
+      id: docRef.id,
+      ...developer.toFirestore()
     });
   } catch (error) {
     console.error('Error in Create Developer:', error);
@@ -73,28 +78,24 @@ exports.updateDeveloper = async (req, res) => {
     const updatedData = req.body;
     const files = req.files;
 
-    // Get existing developer
     const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
     if (!developerDoc.exists) {
       return res.status(404).json({ message: 'Developer not found' });
     }
+
     const existingData = developerDoc.data();
 
-    // Handle logo update
     if (files && files.logoUrl) {
-      // Upload new logo first
       try {
-        const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl');
+        const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
         updatedData.logoUrl = logoUrl;
 
-        // Only attempt to delete old logo after successful upload of new one
         if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
           try {
             await deleteFromFirebase(existingData.logoUrl);
             console.log('Successfully deleted old logo:', existingData.logoUrl);
           } catch (deleteError) {
             console.error("Error deleting old logo:", deleteError);
-            // Continue with update even if delete fails
           }
         }
       } catch (uploadError) {
@@ -103,7 +104,6 @@ exports.updateDeveloper = async (req, res) => {
       }
     }
 
-    // Validate updated data
     const errors = Developer.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       if (updatedData.logoUrl) {
@@ -116,20 +116,19 @@ exports.updateDeveloper = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
-    // Add metadata
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: "Authentication required" });
     }
+
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    // Update developer
     const developer = new Developer({ ...existingData, ...updatedData });
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Developer updated successfully',
       data: developer.toFirestore()
     });

@@ -7,16 +7,23 @@ exports.createProject = async (req, res) => {
     const projectData = req.body;
     const files = req.files;
 
+    // Create document first to get ID
+    const docRef = await db.collection(Project.collectionName).add({
+      createdBy: req.user.email,
+      createdOn: new Date(),
+    });
+
     console.log("Received project data:", projectData);
     console.log("Files received:", files);
 
     if (files.images && Array.isArray(files.images)) {
       try {
         console.log("Uploading images...");
-        projectData.images = await uploadMultipleFiles(files.images, 'images');
+        projectData.images = await uploadMultipleFiles(files.images, 'images', docRef.id);
         console.log("Uploaded images URLs:", projectData.images);
       } catch (error) {
         console.error('Error uploading images:', error);
+        await docRef.delete();
         return res.status(400).json({ error: 'Error uploading images. ' + error.message });
       }
     }
@@ -24,11 +31,12 @@ exports.createProject = async (req, res) => {
     if (files.videos && Array.isArray(files.videos)) {
       try {
         console.log("Uploading videos...");
-        projectData.videos = await uploadMultipleFiles(files.videos, 'videos');
+        projectData.videos = await uploadMultipleFiles(files.videos, 'videos', docRef.id);
         console.log("Uploaded videos URLs:", projectData.videos);
       } catch (error) {
         console.error('Error uploading videos:', error);
         if (projectData.images) await deleteMultipleFiles(projectData.images);
+        await docRef.delete();
         return res.status(400).json({ error: 'Error uploading videos. ' + error.message });
       }
     }
@@ -36,13 +44,14 @@ exports.createProject = async (req, res) => {
     if (files.brochureUrl) {
       try {
         console.log("Uploading brochure...");
-        const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl');
+        const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', docRef.id);
         projectData.brochureUrl = brochureUrl;
         console.log("Brochure URL:", brochureUrl);
       } catch (error) {
         console.error('Error uploading brochure:', error);
         if (projectData.images) await deleteMultipleFiles(projectData.images);
         if (projectData.videos) await deleteMultipleFiles(projectData.videos);
+        await docRef.delete();
         return res.status(400).json({ error: 'Error uploading brochure. ' + error.message });
       }
     }
@@ -50,7 +59,7 @@ exports.createProject = async (req, res) => {
     if (files.layoutPlanUrl) {
       try {
         console.log("Uploading layout plan...");
-        const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl');
+        const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', docRef.id);
         projectData.layoutPlanUrl = layoutPlanUrl;
         console.log("Layout plan URL:", layoutPlanUrl);
       } catch (error) {
@@ -58,6 +67,7 @@ exports.createProject = async (req, res) => {
         if (projectData.images) await deleteMultipleFiles(projectData.images);
         if (projectData.videos) await deleteMultipleFiles(projectData.videos);
         if (projectData.brochureUrl) await deleteFromFirebase(projectData.brochureUrl);
+        await docRef.delete();
         return res.status(400).json({ error: 'Error uploading layout plan. ' + error.message });
       }
     }
@@ -69,6 +79,7 @@ exports.createProject = async (req, res) => {
       await deleteMultipleFiles(projectData.videos);
       if (projectData.brochureUrl) await deleteFromFirebase(projectData.brochureUrl);
       if (projectData.layoutPlanUrl) await deleteFromFirebase(projectData.layoutPlanUrl);
+      await docRef.delete();
       return res.status(400).json({ errors });
     }
 
@@ -76,8 +87,8 @@ exports.createProject = async (req, res) => {
     projectData.createdOn = new Date();
 
     const project = new Project(projectData);
-    const docRef = await db.collection(Project.collectionName).add(project.toFirestore());
-    
+    await docRef.update(project.toFirestore());
+
     console.log("Project created successfully with ID:", docRef.id);
     res.status(201).json({ id: docRef.id, ...project.toFirestore() });
   } catch (error) {
@@ -114,18 +125,15 @@ exports.updateProject = async (req, res) => {
     const updatedData = req.body;
     const files = req.files;
 
-    // Get existing project
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
+
     const existingData = projectDoc.data();
 
-    // Handle file updates
     if (files) {
-      // Handle images
       if (files.images) {
-        // Delete existing images if specified
         if (req.body.deleteImages) {
           try {
             const deleteImages = JSON.parse(req.body.deleteImages);
@@ -136,10 +144,8 @@ exports.updateProject = async (req, res) => {
             return res.status(400).json({ error: 'Error deleting images. ' + error.message });
           }
         }
-
-        // Upload new images
         try {
-          const newImages = await uploadMultipleFiles(files.images, 'images');
+          const newImages = await uploadMultipleFiles(files.images, 'images', id);
           updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
         } catch (error) {
           console.error('Error uploading new images:', error);
@@ -147,9 +153,7 @@ exports.updateProject = async (req, res) => {
         }
       }
 
-      // Handle videos
       if (files.videos) {
-        // Delete existing videos if specified
         if (req.body.deleteVideos) {
           try {
             const deleteVideos = JSON.parse(req.body.deleteVideos);
@@ -160,10 +164,8 @@ exports.updateProject = async (req, res) => {
             return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
           }
         }
-
-        // Upload new videos
         try {
-          const newVideos = await uploadMultipleFiles(files.videos, 'videos');
+          const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
           updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
         } catch (error) {
           console.error('Error uploading new videos:', error);
@@ -171,14 +173,12 @@ exports.updateProject = async (req, res) => {
         }
       }
 
-      // Handle brochure
       if (files.brochureUrl) {
         try {
-          // Delete existing brochure if it exists
           if (existingData.brochureUrl) {
             await deleteFromFirebase(existingData.brochureUrl);
           }
-          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl');
+          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
           updatedData.brochureUrl = brochureUrl;
         } catch (error) {
           console.error('Error handling brochure:', error);
@@ -186,14 +186,12 @@ exports.updateProject = async (req, res) => {
         }
       }
 
-      // Handle layout plan
       if (files.layoutPlanUrl) {
         try {
-          // Delete existing layout plan if it exists
           if (existingData.layoutPlanUrl) {
             await deleteFromFirebase(existingData.layoutPlanUrl);
           }
-          const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl');
+          const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
           updatedData.layoutPlanUrl = layoutPlanUrl;
         } catch (error) {
           console.error('Error handling layout plan:', error);
@@ -202,26 +200,24 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    // Validate updated data
     const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
-    // Add metadata
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: "Authentication required" });
     }
+
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    // Update project
     const project = new Project({ ...existingData, ...updatedData });
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Project updated successfully',
       data: project.toFirestore()
     });

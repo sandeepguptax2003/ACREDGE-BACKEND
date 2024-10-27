@@ -16,13 +16,19 @@ const generateFileName = (file, folder, entityId = '') => {
   const timestamp = new Date().getTime();
   const uuid = uuidv4();
   const ext = path.extname(file.originalname);
-  return `${folder}${entityId ? '/' + entityId : ''}/${timestamp}-${uuid}${ext}`;
+  
+  // Create folder structure with entityId
+  const folderPath = entityId 
+    ? `${FOLDER_PATHS[folder]}/${entityId}`
+    : FOLDER_PATHS[folder];
+    
+  return `${folderPath}/${timestamp}-${uuid}${ext}`;
 };
 
 const uploadToFirebase = async (file, folder, entityId = '') => {
   if (!file) return null;
   
-  const fileName = generateFileName(file, FOLDER_PATHS[folder], entityId);
+  const fileName = generateFileName(file, folder, entityId);
   const fileUpload = bucket.file(fileName);
 
   const blobStream = fileUpload.createWriteStream({
@@ -31,7 +37,8 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
       metadata: {
         entityId,
         originalName: file.originalname,
-        uploadTimestamp: new Date().toISOString()
+        uploadTimestamp: new Date().toISOString(),
+        folder: FOLDER_PATHS[folder]
       }
     },
     resumable: false
@@ -81,36 +88,28 @@ const deleteFromFirebase = async (fileUrl) => {
   }
   
   try {
-    // Handle both full URLs and direct paths
     let fileName;
     if (fileUrl.startsWith('https://storage.googleapis.com/')) {
-      // Extract the bucket name and file path
       const bucketAndPath = fileUrl.replace('https://storage.googleapis.com/', '');
       const pathParts = bucketAndPath.split('/');
-      // Remove the bucket name from the path
-      pathParts.shift();
+      pathParts.shift(); // Remove bucket name
       fileName = pathParts.join('/');
     } else if (fileUrl.startsWith('gs://')) {
-      // Handle gs:// URLs
       const bucketAndPath = fileUrl.replace('gs://', '');
       const pathParts = bucketAndPath.split('/');
-      // Remove the bucket name from the path
-      pathParts.shift();
+      pathParts.shift(); // Remove bucket name
       fileName = pathParts.join('/');
     } else {
-      // Assume it's a direct path
       fileName = fileUrl;
     }
 
-    // Clean up the fileName
-    fileName = fileName.split('?')[0]; // Remove query parameters if any
+    fileName = fileName.split('?')[0]; // Remove query parameters
     fileName = decodeURIComponent(fileName); // Decode URL-encoded characters
 
-    console.log('Attempting to delete file:', fileName); // Debug log
+    console.log('Attempting to delete file:', fileName);
 
     const file = bucket.file(fileName);
     
-    // Check if file exists before deleting
     const [exists] = await file.exists();
     if (!exists) {
       console.log('File does not exist:', fileName);
