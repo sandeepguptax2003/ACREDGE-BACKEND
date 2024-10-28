@@ -7,7 +7,7 @@ const FOLDER_PATHS = {
   images: 'ProjectImages',
   videos: 'ProjectVideos',
   brochureUrl: 'ProjectBrochures',
-  layoutPlanUrl: 'ProjectLayouts',
+  layoutPlanUrl: 'SeriesLayouts',
   insideImagesUrls: 'SeriesImages',
   insideVideosUrls: 'SeriesVideos'
 };
