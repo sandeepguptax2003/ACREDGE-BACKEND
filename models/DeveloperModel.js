@@ -3,7 +3,16 @@ const admin = require('firebase-admin');
 class Developer {
   constructor(data) {
     this.name = data.name.toUpperCase();
-    this.address = data.address;
+    this.address = {
+      fullAddress: data.address.fullAddress || '',
+      streetNumber: data.address.streetNumber || '',
+      route: data.address.route || '',
+      locality: data.address.locality || '',
+      city: data.address.city || '',
+      state: data.address.state || '',
+      country: data.address.country || '',
+      postalCode: data.address.postalCode || '',
+    };
     this.incorporationDate = data.incorporationDate;
     this.totalProjectsDelivered = parseInt(data.totalProjectsDelivered, 10);
     this.totalSqFtDelivered = parseInt(data.totalSqFtDelivered, 10);
@@ -23,7 +32,9 @@ class Developer {
   static validate(data) {
     const errors = [];
     if (!data.name || !/^[A-Z0-9\s]+$/.test(data.name)) errors.push('Developer name is required and must be in capital letters');
-    if (!data.address) errors.push('Address is required');
+    if (!data.address || !data.address.fullAddress) {
+      errors.push('Full address is required');
+    }
     if (!data.incorporationDate || isNaN(new Date(data.incorporationDate).getTime())) errors.push('Valid incorporation date is required');
     
     const totalProjects = parseInt(data.totalProjectsDelivered, 10);

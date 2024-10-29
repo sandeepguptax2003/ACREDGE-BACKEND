@@ -88,6 +88,28 @@ exports.createSeries = async (req, res) => {
   }
 };
 
+exports.getAllSeries = async (req, res) => {
+  try {
+    const snapshot = await db.collection(Series.collectionName).get();
+    const seriesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.status(200).json(seriesList);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSeriesById = async (req, res) => {
+  try {
+    const docRef = await db.collection(Series.collectionName).doc(req.params.id).get();
+    if (!docRef.exists) {
+      return res.status(404).json({ message: 'Series not found' });
+    }
+    res.status(200).json({ id: docRef.id, ...docRef.data() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.updateSeries = async (req, res) => {
   try {
     const { id } = req.params;
@@ -183,28 +205,6 @@ exports.updateSeries = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in Update Series:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-exports.getAllSeries = async (req, res) => {
-  try {
-    const snapshot = await db.collection(Series.collectionName).get();
-    const seriesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.status(200).json(seriesList);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-exports.getSeriesById = async (req, res) => {
-  try {
-    const docRef = await db.collection(Series.collectionName).doc(req.params.id).get();
-    if (!docRef.exists) {
-      return res.status(404).json({ message: 'Series not found' });
-    }
-    res.status(200).json({ id: docRef.id, ...docRef.data() });
-  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };

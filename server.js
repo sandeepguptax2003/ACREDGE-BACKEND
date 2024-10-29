@@ -12,6 +12,7 @@ const TowerRoutes = require("./routes/TowerRoutes");
 const SeriesRoutes = require("./routes/SeriesRoutes");
 const DashboardRoutes = require("./routes/DashboardRoutes");
 const { handleUploadError } = require('./middleware/UploadMiddleware');
+const PlacesRoutes = require('./routes/PlacesRoutes');
 
 const app = express();
 app.use(cookieParser());
@@ -31,6 +32,7 @@ app.use("/api/projects", ProjectRoutes);
 app.use("/api/towers", TowerRoutes);
 app.use("/api/series", SeriesRoutes);
 app.use('/api/dashboard', DashboardRoutes);
+app.use('/api/places', PlacesRoutes);
 
 // Error handling middleware last
 app.use(handleUploadError);
