@@ -81,12 +81,68 @@ const uploadMultipleFiles = async (files, folder, entityId = '') => {
   }
 };
 
+// const deleteFromFirebase = async (fileUrl) => {
+//   if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.trim()) {
+//     console.error('Invalid fileUrl provided to deleteFromFirebase:', fileUrl);
+//     return;
+//   }
+  
+//   try {
+//     let fileName;
+//     if (fileUrl.startsWith('https://storage.googleapis.com/')) {
+//       const bucketAndPath = fileUrl.replace('https://storage.googleapis.com/', '');
+//       const pathParts = bucketAndPath.split('/');
+//       pathParts.shift(); // Remove bucket name
+//       fileName = pathParts.join('/');
+//     } else if (fileUrl.startsWith('gs://')) {
+//       const bucketAndPath = fileUrl.replace('gs://', '');
+//       const pathParts = bucketAndPath.split('/');
+//       pathParts.shift(); // Remove bucket name
+//       fileName = pathParts.join('/');
+//     } else {
+//       fileName = fileUrl;
+//     }
+
+//     fileName = fileName.split('?')[0]; // Remove query parameters
+//     fileName = decodeURIComponent(fileName); // Decode URL-encoded characters
+
+//     console.log('Attempting to delete file:', fileName);
+
+//     const file = bucket.file(fileName);
+    
+//     const [exists] = await file.exists();
+//     if (!exists) {
+//       console.log('File does not exist:', fileName);
+//       return;
+//     }
+
+//     await file.delete();
+//     console.log('Successfully deleted file:', fileName);
+//   } catch (error) {
+//     console.error('Error deleting file from Firebase:', error);
+//     throw error;
+//   }
+// };
+
+// const deleteMultipleFiles = async (fileUrls) => {
+//   if (!fileUrls) return;
+  
+//   const urls = Array.isArray(fileUrls) ? fileUrls : [fileUrls];
+//   try {
+//     const deletePromises = urls.map(url => deleteFromFirebase(url));
+//     await Promise.all(deletePromises);
+//   } catch (error) {
+//     console.error('Error deleting files:', error);
+//     throw error;
+//   }
+// };
+
 const deleteFromFirebase = async (fileUrl) => {
   if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.trim()) {
     console.error('Invalid fileUrl provided to deleteFromFirebase:', fileUrl);
     return;
   }
-  
+
   try {
     let fileName;
     if (fileUrl.startsWith('https://storage.googleapis.com/')) {
@@ -109,7 +165,7 @@ const deleteFromFirebase = async (fileUrl) => {
     console.log('Attempting to delete file:', fileName);
 
     const file = bucket.file(fileName);
-    
+
     const [exists] = await file.exists();
     if (!exists) {
       console.log('File does not exist:', fileName);
@@ -126,7 +182,7 @@ const deleteFromFirebase = async (fileUrl) => {
 
 const deleteMultipleFiles = async (fileUrls) => {
   if (!fileUrls) return;
-  
+
   const urls = Array.isArray(fileUrls) ? fileUrls : [fileUrls];
   try {
     const deletePromises = urls.map(url => deleteFromFirebase(url));

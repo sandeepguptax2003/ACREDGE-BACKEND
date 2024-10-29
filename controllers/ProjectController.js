@@ -240,98 +240,48 @@ exports.updateProject = async (req, res) => {
 
     const existingData = projectDoc.data();
 
-    // Handle file updates
-    if (files || req.body.deleteFiles) {
-      // Parse deleteFiles object if it exists
-      const deleteFiles = req.body.deleteFiles ? JSON.parse(req.body.deleteFiles) : {};
-      
-      // Handle images
-      if (deleteFiles.images || files?.images) {
-        try {
-          // Initialize images array from existing data
-          updatedData.images = [...(existingData.images || [])];
-          
-          // Remove deleted images
-          if (deleteFiles.images && Array.isArray(deleteFiles.images)) {
-            await deleteMultipleFiles(deleteFiles.images);
-            updatedData.images = updatedData.images.filter(
-              url => !deleteFiles.images.includes(url)
-            );
+    if (files) {
+      if (files.images) {
+        if (req.body.deleteImages) {
+          try {
+            const deleteImages = JSON.parse(req.body.deleteImages);
+            await deleteMultipleFiles(deleteImages);
+            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
+          } catch (error) {
+            console.error('Error deleting images:', error);
+            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
           }
-
-          // Add new images if provided
-          if (files?.images) {
-            const newImages = await uploadMultipleFiles(files.images, 'images', id);
-            updatedData.images = [...updatedData.images, ...newImages];
-          }
-        } catch (error) {
-          console.error('Error handling images:', error);
-          return res.status(400).json({ error: 'Error handling images. ' + error.message });
-        }
+        }       
       }
 
-      // Handle videos
-      if (deleteFiles.videos || files?.videos) {
+      if (req.body.deleteVideos) {
         try {
-          // Initialize videos array from existing data
-          updatedData.videos = [...(existingData.videos || [])];
-          
-          // Remove deleted videos
-          if (deleteFiles.videos && Array.isArray(deleteFiles.videos)) {
-            await deleteMultipleFiles(deleteFiles.videos);
-            updatedData.videos = updatedData.videos.filter(
-              url => !deleteFiles.videos.includes(url)
-            );
-          }
-
-          // Add new videos if provided
-          if (files?.videos) {
-            const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
-            updatedData.videos = [...updatedData.videos, ...newVideos];
-          }
+          const deleteVideos = JSON.parse(req.body.deleteVideos);
+          await deleteMultipleFiles(deleteVideos);
+          updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
         } catch (error) {
-          console.error('Error handling videos:', error);
-          return res.status(400).json({ error: 'Error handling videos. ' + error.message });
+          console.error('Error deleting videos:', error);
+          return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
         }
       }
-
-      // Handle brochure
-      if (deleteFiles.brochure === 'true' || files?.brochureUrl) {
+  
+      if (existingData.brochureUrl && (!files.brochureUrl || files.brochureUrl.length === 0)) {
         try {
-          // Delete existing brochure if it exists
-          if (existingData.brochureUrl) {
-            await deleteFromFirebase(existingData.brochureUrl);
-            updatedData.brochureUrl = null;
-          }
-          
-          // Upload new brochure if provided
-          if (files?.brochureUrl) {
-            const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
-            updatedData.brochureUrl = brochureUrl;
-          }
+          await deleteFromFirebase(existingData.brochureUrl);
+          updatedData.brochureUrl = null;
         } catch (error) {
-          console.error('Error handling brochure:', error);
-          return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
+          console.error('Error deleting brochure:', error);
+          return res.status(400).json({ error: 'Error deleting brochure. ' + error.message });
         }
       }
-
-      // Handle layout plan
-      if (deleteFiles.layoutPlan === 'true' || files?.layoutPlanUrl) {
+  
+      if (existingData.layoutPlanUrl && (!files.layoutPlanUrl || files.layoutPlanUrl.length === 0)) {
         try {
-          // Delete existing layout plan if it exists
-          if (existingData.layoutPlanUrl) {
-            await deleteFromFirebase(existingData.layoutPlanUrl);
-            updatedData.layoutPlanUrl = null;
-          }
-          
-          // Upload new layout plan if provided
-          if (files?.layoutPlanUrl) {
-            const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
-            updatedData.layoutPlanUrl = layoutPlanUrl;
-          }
+          await deleteFromFirebase(existingData.layoutPlanUrl);
+          updatedData.layoutPlanUrl = null;
         } catch (error) {
-          console.error('Error handling layout plan:', error);
-          return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
+          console.error('Error deleting layout plan:', error);
+          return res.status(400).json({ error: 'Error deleting layout plan. ' + error.message });
         }
       }
     }

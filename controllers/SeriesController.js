@@ -110,6 +110,82 @@ exports.getSeriesById = async (req, res) => {
   }
 };
 
+exports.updateSeries = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+    const files = req.files;
+
+    const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
+    if (!seriesDoc.exists) {
+      return res.status(404).json({ message: 'Series not found' });
+    }
+    const existingData = seriesDoc.data();
+
+    if (files) {
+      // Handle inside images
+      if (files.insideImagesUrls) {
+        if (req.body.deleteInsideImages) {
+          try {
+            const deleteImages = JSON.parse(req.body.deleteInsideImages);
+            await deleteMultipleFiles(deleteImages);
+            updatedData.insideImagesUrls = (existingData.insideImagesUrls || []).filter(url => !deleteImages.includes(url));
+          } catch (error) {
+            console.error('Error deleting inside images:', error);
+            return res.status(400).json({ error: 'Error deleting inside images. ' + error.message });
+          }
+        }
+      }
+    
+        if (req.body.deleteInsideVideos) {
+          try {
+            const deleteVideos = JSON.parse(req.body.deleteInsideVideos);
+            await deleteMultipleFiles(deleteVideos);
+            updatedData.insideVideosUrls = (existingData.insideVideosUrls || []).filter(url => !deleteVideos.includes(url));
+          } catch (error) {
+            console.error('Error deleting inside videos:', error);
+            return res.status(400).json({ error: 'Error deleting inside videos. ' + error.message });
+          }
+        }
+    
+        if (existingData.layoutPlanUrl && (!files.layoutPlanUrl || files.layoutPlanUrl.length === 0)) {
+          try {
+            await deleteFromFirebase(existingData.layoutPlanUrl);
+            updatedData.layoutPlanUrl = null;
+          } catch (error) {
+            console.error('Error deleting layout plan:', error);
+            return res.status(400).json({ error: 'Error deleting layout plan. ' + error.message });
+          }
+        }
+      }
+
+    const errors = Series.validate({ ...existingData, ...updatedData });
+    if (errors.length > 0) {
+      return res.status(400).json({ errors });
+    }
+
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    updatedData.createdBy = existingData.createdBy;
+    updatedData.createdOn = existingData.createdOn;
+    updatedData.updatedBy = req.user.email;
+    updatedData.updatedOn = new Date();
+
+    const series = new Series({ ...existingData, ...updatedData });
+    await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
+    
+    res.status(200).json({ 
+      message: 'Series updated successfully',
+      data: series.toFirestore()
+    });
+  } catch (error) {
+    console.error('Error in Update Series:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // exports.updateSeries = async (req, res) => {
 //   try {
 //     const { id } = req.params;
