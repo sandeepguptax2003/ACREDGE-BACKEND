@@ -72,35 +72,107 @@ exports.getDeveloperById = async (req, res) => {
   }
 };
 
+// exports.updateDeveloper = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updatedData = req.body;
+//     const files = req.files;
+
+//     const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
+//     if (!developerDoc.exists) {
+//       return res.status(404).json({ message: 'Developer not found' });
+//     }
+
+//     const existingData = developerDoc.data();
+
+//     if (files && files.logoUrl) {
+//       try {
+//         const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
+//         updatedData.logoUrl = logoUrl;
+
+//         if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
+//           try {
+//             await deleteFromFirebase(existingData.logoUrl);
+//             console.log('Successfully deleted old logo:', existingData.logoUrl);
+//           } catch (deleteError) {
+//             console.error("Error deleting old logo:", deleteError);
+//           }
+//         }
+//       } catch (uploadError) {
+//         console.error("Error uploading new logo:", uploadError);
+//         return res.status(500).json({ error: "Error uploading new logo." });
+//       }
+//     }
+
+//     const errors = Developer.validate({ ...existingData, ...updatedData });
+//     if (errors.length > 0) {
+//       if (updatedData.logoUrl) {
+//         try {
+//           await deleteFromFirebase(updatedData.logoUrl);
+//         } catch (error) {
+//           console.error("Error deleting invalid logo:", error);
+//         }
+//       }
+//       return res.status(400).json({ errors });
+//     }
+
+//     if (!req.user || !req.user.email) {
+//       return res.status(401).json({ message: "Authentication required" });
+//     }
+
+//     updatedData.createdBy = existingData.createdBy;
+//     updatedData.createdOn = existingData.createdOn;
+//     updatedData.updatedBy = req.user.email;
+//     updatedData.updatedOn = new Date();
+
+//     const developer = new Developer({ ...existingData, ...updatedData });
+//     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
+
+//     res.status(200).json({
+//       message: 'Developer updated successfully',
+//       data: developer.toFirestore()
+//     });
+//   } catch (error) {
+//     console.error('Error in Update Developer:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.updateDeveloper = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
     const files = req.files;
-
+    
     const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
     if (!developerDoc.exists) {
       return res.status(404).json({ message: 'Developer not found' });
     }
-
+    
     const existingData = developerDoc.data();
-
-    if (files && files.logoUrl) {
-      try {
-        const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
-        updatedData.logoUrl = logoUrl;
-
-        if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
-          try {
-            await deleteFromFirebase(existingData.logoUrl);
-            console.log('Successfully deleted old logo:', existingData.logoUrl);
-          } catch (deleteError) {
-            console.error("Error deleting old logo:", deleteError);
-          }
+    
+    // Handle logo update
+    if (req.body.removeLogo === 'true' || files?.logoUrl) {
+      // Delete existing logo if it exists
+      if (existingData.logoUrl) {
+        try {
+          await deleteFromFirebase(existingData.logoUrl);
+          updatedData.logoUrl = null;
+        } catch (error) {
+          console.error("Error deleting old logo:", error);
+          return res.status(500).json({ error: "Error deleting old logo." });
         }
-      } catch (uploadError) {
-        console.error("Error uploading new logo:", uploadError);
-        return res.status(500).json({ error: "Error uploading new logo." });
+      }
+      
+      // Upload new logo if provided
+      if (files?.logoUrl) {
+        try {
+          const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
+          updatedData.logoUrl = logoUrl;
+        } catch (uploadError) {
+          console.error("Error uploading new logo:", uploadError);
+          return res.status(500).json({ error: "Error uploading new logo." });
+        }
       }
     }
 

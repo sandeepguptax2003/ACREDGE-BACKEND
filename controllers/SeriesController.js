@@ -110,6 +110,105 @@ exports.getSeriesById = async (req, res) => {
   }
 };
 
+// exports.updateSeries = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updatedData = req.body;
+//     const files = req.files;
+
+//     const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
+//     if (!seriesDoc.exists) {
+//       return res.status(404).json({ message: 'Series not found' });
+//     }
+//     const existingData = seriesDoc.data();
+
+//     if (files) {
+//       // Handle inside images
+//       if (files.insideImagesUrls) {
+//         if (req.body.deleteInsideImages) {
+//           try {
+//             const deleteImages = JSON.parse(req.body.deleteInsideImages);
+//             await deleteMultipleFiles(deleteImages);
+//             updatedData.insideImagesUrls = (existingData.insideImagesUrls || []).filter(url => !deleteImages.includes(url));
+//           } catch (error) {
+//             console.error('Error deleting inside images:', error);
+//             return res.status(400).json({ error: 'Error deleting inside images. ' + error.message });
+//           }
+//         }
+
+//         try {
+//           const newImages = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', id);
+//           updatedData.insideImagesUrls = [...(updatedData.insideImagesUrls || existingData.insideImagesUrls || []), ...newImages];
+//         } catch (error) {
+//           console.error('Error uploading new inside images:', error);
+//           return res.status(400).json({ error: 'Error uploading new inside images. ' + error.message });
+//         }
+//       }
+
+//       // Handle inside videos
+//       if (files.insideVideosUrls) {
+//         if (req.body.deleteInsideVideos) {
+//           try {
+//             const deleteVideos = JSON.parse(req.body.deleteInsideVideos);
+//             await deleteMultipleFiles(deleteVideos);
+//             updatedData.insideVideosUrls = (existingData.insideVideosUrls || []).filter(url => !deleteVideos.includes(url));
+//           } catch (error) {
+//             console.error('Error deleting inside videos:', error);
+//             return res.status(400).json({ error: 'Error deleting inside videos. ' + error.message });
+//           }
+//         }
+
+//         try {
+//           const newVideos = await uploadMultipleFiles(files.insideVideosUrls, 'insideVideosUrls', id);
+//           updatedData.insideVideosUrls = [...(updatedData.insideVideosUrls || existingData.insideVideosUrls || []), ...newVideos];
+//         } catch (error) {
+//           console.error('Error uploading new inside videos:', error);
+//           return res.status(400).json({ error: 'Error uploading new inside videos. ' + error.message });
+//         }
+//       }
+
+//       // Handle layout plan
+//       if (files.layoutPlanUrl) {
+//         try {
+//           if (existingData.layoutPlanUrl) {
+//             await deleteFromFirebase(existingData.layoutPlanUrl);
+//           }
+//           const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
+//           updatedData.layoutPlanUrl = layoutPlanUrl;
+//         } catch (error) {
+//           console.error('Error handling layout plan:', error);
+//           return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
+//         }
+//       }
+//     }
+
+//     const errors = Series.validate({ ...existingData, ...updatedData });
+//     if (errors.length > 0) {
+//       return res.status(400).json({ errors });
+//     }
+
+//     if (!req.user || !req.user.email) {
+//       return res.status(401).json({ message: "Authentication required" });
+//     }
+
+//     updatedData.createdBy = existingData.createdBy;
+//     updatedData.createdOn = existingData.createdOn;
+//     updatedData.updatedBy = req.user.email;
+//     updatedData.updatedOn = new Date();
+
+//     const series = new Series({ ...existingData, ...updatedData });
+//     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
+    
+//     res.status(200).json({ 
+//       message: 'Series updated successfully',
+//       data: series.toFirestore()
+//     });
+//   } catch (error) {
+//     console.error('Error in Update Series:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.updateSeries = async (req, res) => {
   try {
     const { id } = req.params;
@@ -120,61 +219,78 @@ exports.updateSeries = async (req, res) => {
     if (!seriesDoc.exists) {
       return res.status(404).json({ message: 'Series not found' });
     }
+
     const existingData = seriesDoc.data();
 
-    if (files) {
-      // Handle inside images
-      if (files.insideImagesUrls) {
-        if (req.body.deleteInsideImages) {
-          try {
-            const deleteImages = JSON.parse(req.body.deleteInsideImages);
-            await deleteMultipleFiles(deleteImages);
-            updatedData.insideImagesUrls = (existingData.insideImagesUrls || []).filter(url => !deleteImages.includes(url));
-          } catch (error) {
-            console.error('Error deleting inside images:', error);
-            return res.status(400).json({ error: 'Error deleting inside images. ' + error.message });
-          }
-        }
+    // Handle file updates
+    if (files || req.body.deleteFiles) {
+      // Parse deleteFiles object if it exists
+      const deleteFiles = req.body.deleteFiles ? JSON.parse(req.body.deleteFiles) : {};
 
+      // Handle inside images
+      if (deleteFiles.insideImages || files?.insideImagesUrls) {
         try {
-          const newImages = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', id);
-          updatedData.insideImagesUrls = [...(updatedData.insideImagesUrls || existingData.insideImagesUrls || []), ...newImages];
+          // Initialize inside images array from existing data
+          updatedData.insideImagesUrls = [...(existingData.insideImagesUrls || [])];
+          
+          // Remove deleted inside images
+          if (deleteFiles.insideImages && Array.isArray(deleteFiles.insideImages)) {
+            await deleteMultipleFiles(deleteFiles.insideImages);
+            updatedData.insideImagesUrls = updatedData.insideImagesUrls.filter(
+              url => !deleteFiles.insideImages.includes(url)
+            );
+          }
+
+          // Add new inside images if provided
+          if (files?.insideImagesUrls) {
+            const newImages = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', id);
+            updatedData.insideImagesUrls = [...updatedData.insideImagesUrls, ...newImages];
+          }
         } catch (error) {
-          console.error('Error uploading new inside images:', error);
-          return res.status(400).json({ error: 'Error uploading new inside images. ' + error.message });
+          console.error('Error handling inside images:', error);
+          return res.status(400).json({ error: 'Error handling inside images. ' + error.message });
         }
       }
 
       // Handle inside videos
-      if (files.insideVideosUrls) {
-        if (req.body.deleteInsideVideos) {
-          try {
-            const deleteVideos = JSON.parse(req.body.deleteInsideVideos);
-            await deleteMultipleFiles(deleteVideos);
-            updatedData.insideVideosUrls = (existingData.insideVideosUrls || []).filter(url => !deleteVideos.includes(url));
-          } catch (error) {
-            console.error('Error deleting inside videos:', error);
-            return res.status(400).json({ error: 'Error deleting inside videos. ' + error.message });
-          }
-        }
-
+      if (deleteFiles.insideVideos || files?.insideVideosUrls) {
         try {
-          const newVideos = await uploadMultipleFiles(files.insideVideosUrls, 'insideVideosUrls', id);
-          updatedData.insideVideosUrls = [...(updatedData.insideVideosUrls || existingData.insideVideosUrls || []), ...newVideos];
+          // Initialize inside videos array from existing data
+          updatedData.insideVideosUrls = [...(existingData.insideVideosUrls || [])];
+          
+          // Remove deleted inside videos
+          if (deleteFiles.insideVideos && Array.isArray(deleteFiles.insideVideos)) {
+            await deleteMultipleFiles(deleteFiles.insideVideos);
+            updatedData.insideVideosUrls = updatedData.insideVideosUrls.filter(
+              url => !deleteFiles.insideVideos.includes(url)
+            );
+          }
+
+          // Add new inside videos if provided
+          if (files?.insideVideosUrls) {
+            const newVideos = await uploadMultipleFiles(files.insideVideosUrls, 'insideVideosUrls', id);
+            updatedData.insideVideosUrls = [...updatedData.insideVideosUrls, ...newVideos];
+          }
         } catch (error) {
-          console.error('Error uploading new inside videos:', error);
-          return res.status(400).json({ error: 'Error uploading new inside videos. ' + error.message });
+          console.error('Error handling inside videos:', error);
+          return res.status(400).json({ error: 'Error handling inside videos. ' + error.message });
         }
       }
 
       // Handle layout plan
-      if (files.layoutPlanUrl) {
+      if (deleteFiles.layoutPlan === 'true' || files?.layoutPlanUrl) {
         try {
+          // Delete existing layout plan if it exists
           if (existingData.layoutPlanUrl) {
             await deleteFromFirebase(existingData.layoutPlanUrl);
+            updatedData.layoutPlanUrl = null;
           }
-          const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
-          updatedData.layoutPlanUrl = layoutPlanUrl;
+          
+          // Upload new layout plan if provided
+          if (files?.layoutPlanUrl) {
+            const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
+            updatedData.layoutPlanUrl = layoutPlanUrl;
+          }
         } catch (error) {
           console.error('Error handling layout plan:', error);
           return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
@@ -198,8 +314,8 @@ exports.updateSeries = async (req, res) => {
 
     const series = new Series({ ...existingData, ...updatedData });
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Series updated successfully',
       data: series.toFirestore()
     });

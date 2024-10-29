@@ -119,6 +119,114 @@ exports.getProjectById = async (req, res) => {
   }
 };
 
+// exports.updateProject = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updatedData = req.body;
+//     const files = req.files;
+
+//     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
+//     if (!projectDoc.exists) {
+//       return res.status(404).json({ message: 'Project not found' });
+//     }
+
+//     const existingData = projectDoc.data();
+
+//     if (files) {
+//       if (files.images) {
+//         if (req.body.deleteImages) {
+//           try {
+//             const deleteImages = JSON.parse(req.body.deleteImages);
+//             await deleteMultipleFiles(deleteImages);
+//             updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
+//           } catch (error) {
+//             console.error('Error deleting images:', error);
+//             return res.status(400).json({ error: 'Error deleting images. ' + error.message });
+//           }
+//         }
+//         try {
+//           const newImages = await uploadMultipleFiles(files.images, 'images', id);
+//           updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
+//         } catch (error) {
+//           console.error('Error uploading new images:', error);
+//           return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
+//         }
+//       }
+
+//       if (files.videos) {
+//         if (req.body.deleteVideos) {
+//           try {
+//             const deleteVideos = JSON.parse(req.body.deleteVideos);
+//             await deleteMultipleFiles(deleteVideos);
+//             updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
+//           } catch (error) {
+//             console.error('Error deleting videos:', error);
+//             return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
+//           }
+//         }
+//         try {
+//           const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
+//           updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
+//         } catch (error) {
+//           console.error('Error uploading new videos:', error);
+//           return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
+//         }
+//       }
+
+//       if (files.brochureUrl) {
+//         try {
+//           if (existingData.brochureUrl) {
+//             await deleteFromFirebase(existingData.brochureUrl);
+//           }
+//           const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+//           updatedData.brochureUrl = brochureUrl;
+//         } catch (error) {
+//           console.error('Error handling brochure:', error);
+//           return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
+//         }
+//       }
+
+//       if (files.layoutPlanUrl) {
+//         try {
+//           if (existingData.layoutPlanUrl) {
+//             await deleteFromFirebase(existingData.layoutPlanUrl);
+//           }
+//           const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
+//           updatedData.layoutPlanUrl = layoutPlanUrl;
+//         } catch (error) {
+//           console.error('Error handling layout plan:', error);
+//           return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
+//         }
+//       }
+//     }
+
+//     const errors = Project.validate({ ...existingData, ...updatedData });
+//     if (errors.length > 0) {
+//       return res.status(400).json({ errors });
+//     }
+
+//     if (!req.user || !req.user.email) {
+//       return res.status(401).json({ message: "Authentication required" });
+//     }
+
+//     updatedData.createdBy = existingData.createdBy;
+//     updatedData.createdOn = existingData.createdOn;
+//     updatedData.updatedBy = req.user.email;
+//     updatedData.updatedOn = new Date();
+
+//     const project = new Project({ ...existingData, ...updatedData });
+//     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+
+//     res.status(200).json({
+//       message: 'Project updated successfully',
+//       data: project.toFirestore()
+//     });
+//   } catch (error) {
+//     console.error('Error in Update Project:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -132,67 +240,95 @@ exports.updateProject = async (req, res) => {
 
     const existingData = projectDoc.data();
 
-    if (files) {
-      if (files.images) {
-        if (req.body.deleteImages) {
-          try {
-            const deleteImages = JSON.parse(req.body.deleteImages);
-            await deleteMultipleFiles(deleteImages);
-            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
-          } catch (error) {
-            console.error('Error deleting images:', error);
-            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
-          }
-        }
+    // Handle file updates
+    if (files || req.body.deleteFiles) {
+      // Parse deleteFiles object if it exists
+      const deleteFiles = req.body.deleteFiles ? JSON.parse(req.body.deleteFiles) : {};
+      
+      // Handle images
+      if (deleteFiles.images || files?.images) {
         try {
-          const newImages = await uploadMultipleFiles(files.images, 'images', id);
-          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
+          // Initialize images array from existing data
+          updatedData.images = [...(existingData.images || [])];
+          
+          // Remove deleted images
+          if (deleteFiles.images && Array.isArray(deleteFiles.images)) {
+            await deleteMultipleFiles(deleteFiles.images);
+            updatedData.images = updatedData.images.filter(
+              url => !deleteFiles.images.includes(url)
+            );
+          }
+
+          // Add new images if provided
+          if (files?.images) {
+            const newImages = await uploadMultipleFiles(files.images, 'images', id);
+            updatedData.images = [...updatedData.images, ...newImages];
+          }
         } catch (error) {
-          console.error('Error uploading new images:', error);
-          return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
+          console.error('Error handling images:', error);
+          return res.status(400).json({ error: 'Error handling images. ' + error.message });
         }
       }
 
-      if (files.videos) {
-        if (req.body.deleteVideos) {
-          try {
-            const deleteVideos = JSON.parse(req.body.deleteVideos);
-            await deleteMultipleFiles(deleteVideos);
-            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
-          } catch (error) {
-            console.error('Error deleting videos:', error);
-            return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
-          }
-        }
+      // Handle videos
+      if (deleteFiles.videos || files?.videos) {
         try {
-          const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
-          updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
+          // Initialize videos array from existing data
+          updatedData.videos = [...(existingData.videos || [])];
+          
+          // Remove deleted videos
+          if (deleteFiles.videos && Array.isArray(deleteFiles.videos)) {
+            await deleteMultipleFiles(deleteFiles.videos);
+            updatedData.videos = updatedData.videos.filter(
+              url => !deleteFiles.videos.includes(url)
+            );
+          }
+
+          // Add new videos if provided
+          if (files?.videos) {
+            const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
+            updatedData.videos = [...updatedData.videos, ...newVideos];
+          }
         } catch (error) {
-          console.error('Error uploading new videos:', error);
-          return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
+          console.error('Error handling videos:', error);
+          return res.status(400).json({ error: 'Error handling videos. ' + error.message });
         }
       }
 
-      if (files.brochureUrl) {
+      // Handle brochure
+      if (deleteFiles.brochure === 'true' || files?.brochureUrl) {
         try {
+          // Delete existing brochure if it exists
           if (existingData.brochureUrl) {
             await deleteFromFirebase(existingData.brochureUrl);
+            updatedData.brochureUrl = null;
           }
-          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
-          updatedData.brochureUrl = brochureUrl;
+          
+          // Upload new brochure if provided
+          if (files?.brochureUrl) {
+            const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+            updatedData.brochureUrl = brochureUrl;
+          }
         } catch (error) {
           console.error('Error handling brochure:', error);
           return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
         }
       }
 
-      if (files.layoutPlanUrl) {
+      // Handle layout plan
+      if (deleteFiles.layoutPlan === 'true' || files?.layoutPlanUrl) {
         try {
+          // Delete existing layout plan if it exists
           if (existingData.layoutPlanUrl) {
             await deleteFromFirebase(existingData.layoutPlanUrl);
+            updatedData.layoutPlanUrl = null;
           }
-          const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
-          updatedData.layoutPlanUrl = layoutPlanUrl;
+          
+          // Upload new layout plan if provided
+          if (files?.layoutPlanUrl) {
+            const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
+            updatedData.layoutPlanUrl = layoutPlanUrl;
+          }
         } catch (error) {
           console.error('Error handling layout plan:', error);
           return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
