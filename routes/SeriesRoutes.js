@@ -10,4 +10,4 @@ router.get('/:id', isAuthenticated, seriesController.getSeriesById);
 router.put('/:id', isAuthenticated, upload.fields(uploadFields), seriesController.updateSeries);
 router.delete('/:id', isAuthenticated, seriesController.deleteSeries);
 
-module.exports = router;    
+module.exports = router;

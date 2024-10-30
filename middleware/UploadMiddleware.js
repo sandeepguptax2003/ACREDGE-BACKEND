@@ -6,7 +6,7 @@ const storage = multer.memoryStorage();
 
 // Define file size limits in bytes
 const FILE_LIMITS = {
-  logoUrl: 2 * 1024 * 1024, // 2MB
+  images: 2 * 1024 * 1024, // 2MB
   images: 10 * 1024 * 1024, // 10MB
   videos: 50 * 1024 * 1024, // 50MB
   brochureUrl: 50 * 1024 * 1024, // 50MB
@@ -17,7 +17,7 @@ const FILE_LIMITS = {
 
 // Define maximum counts for each file type
 const MAX_COUNTS = {
-  logoUrl: 1,
+  images: 1,
   images: 20,
   videos: 5,
   brochureUrl: 1,
@@ -42,7 +42,7 @@ const fileFilter = (req, file, cb) => {
 
   try {
     switch (file.fieldname) {
-      case 'logoUrl':
+      case 'images':
         if (!allowedImageTypes.test(ext)) {
           throw new Error('Logo must be JPG or PNG format');
         }
@@ -78,7 +78,7 @@ const fileFilter = (req, file, cb) => {
       throw new Error(`File size exceeds limit for ${file.fieldname}`);
     }
 
-    if (file.fieldname !== 'logoUrl' && 
+    if (file.fieldname !== 'images' && 
         file.fieldname !== 'brochureUrl' && 
         file.fieldname !== 'layoutPlanUrl') {
       const existingFiles = req.files ? req.files[file.fieldname] : [];
@@ -94,7 +94,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const uploadFields = [
-  { name: 'logoUrl', maxCount: MAX_COUNTS.logoUrl },
+  { name: 'images', maxCount: MAX_COUNTS.images },
   { name: 'images', maxCount: MAX_COUNTS.images },
   { name: 'videos', maxCount: MAX_COUNTS.videos },
   { name: 'brochureUrl', maxCount: MAX_COUNTS.brochureUrl },
