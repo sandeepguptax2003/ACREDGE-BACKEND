@@ -137,6 +137,27 @@ const deleteMultipleFiles = async (fileUrls) => {
   }
 };
 
+const validateFiles = (files, type, currentCount = 0) => {
+  const { MAX_COUNTS, FILE_LIMITS } = require('../middleware/UploadMiddleware');
+
+  if (!files) return null;
+
+  const filesArray = Array.isArray(files) ? files : [files];
+  const totalCount = filesArray.length + currentCount;
+
+  if (totalCount > MAX_COUNTS[type]) {
+    throw new Error(`Maximum ${MAX_COUNTS[type]} ${type} allowed`);
+  }
+
+  filesArray.forEach(file => {
+    if (file.size > FILE_LIMITS[type]) {
+      throw new Error(`${type} size must be less than ${FILE_LIMITS[type] / (1024 * 1024)}MB`);
+    }
+  });
+
+  return true;
+};
+
 module.exports = {
   uploadToFirebase,
   deleteFromFirebase,
