@@ -4,24 +4,30 @@ const Project = require('../models/ProjectModel');
 const Series = require('../models/SeriesModel');
 const Tower = require('../models/TowerModel');
 
+// Controller function to get statistics for Developers
 exports.getDeveloperStats = async (req, res) => {
   try {
+    // Fetch all documents in the Developer collection
     const snapshot = await db.collection(Developer.collectionName).get();
-    const developers = snapshot.docs.map(doc => doc.data());
+    const developers = snapshot.docs.map(doc => doc.data());  // Map documents to data array
     
+    // Calculate stats for developers: total, active, and disabled
     const stats = {
       total: developers.length,
       active: developers.filter(dev => dev.status === 'Active').length,
       disabled: developers.filter(dev => dev.status === 'Disable').length
     };
     
+    // Send stats as a JSON response
     res.status(200).json(stats);
   } catch (error) {
+    // Log error and return a 500 status code with error message
     console.error('Error in Get Developer Stats:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// Controller function to get statistics for Projects
 exports.getProjectStats = async (req, res) => {
   try {
     const snapshot = await db.collection(Project.collectionName).get();
@@ -40,6 +46,7 @@ exports.getProjectStats = async (req, res) => {
   }
 };
 
+// Controller function to get statistics for Series
 exports.getSeriesStats = async (req, res) => {
   try {
     const snapshot = await db.collection(Series.collectionName).get();
@@ -58,6 +65,7 @@ exports.getSeriesStats = async (req, res) => {
   }
 };
 
+// Controller function to get statistics for Towers
 exports.getTowerStats = async (req, res) => {
   try {
     const snapshot = await db.collection(Tower.collectionName).get();
@@ -76,9 +84,10 @@ exports.getTowerStats = async (req, res) => {
   }
 };
 
+// Controller function to get statistics for all collections in a single response
 exports.getAllStats = async (req, res) => {
   try {
-    // Get all collections data in parallel
+    // Fetch all collections in parallel using Promise.all for improved efficiency
     const [
       developersSnapshot,
       projectsSnapshot,
@@ -91,13 +100,13 @@ exports.getAllStats = async (req, res) => {
       db.collection(Tower.collectionName).get()
     ]);
 
-    // Process each collection's data
+    // Extract data from snapshots for each collection
     const developers = developersSnapshot.docs.map(doc => doc.data());
     const projects = projectsSnapshot.docs.map(doc => doc.data());
     const series = seriesSnapshot.docs.map(doc => doc.data());
     const towers = towersSnapshot.docs.map(doc => doc.data());
 
-    // Compile all stats
+    // Compile all stats into a single response object for easier aggregation
     const stats = {
       developers: {
         total: developers.length,
@@ -121,8 +130,10 @@ exports.getAllStats = async (req, res) => {
       }
     };
 
+    // Respond with the compiled stats object
     res.status(200).json(stats);
   } catch (error) {
+    // Catch any errors during data retrieval and respond with a 500 status
     console.error('Error in Get All Stats:', error);
     res.status(500).json({ error: error.message });
   }

@@ -1,42 +1,55 @@
+// Load environment variables from .env file into process.env
 require("dotenv").config();
 
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+// Import necessary modules
+const express = require("express"); // Framework for building web applications
+const cors = require("cors"); // Middleware for enabling CORS (Cross-Origin Resource Sharing)
+const bodyParser = require("body-parser"); // Middleware for parsing request bodies
+const cookieParser = require("cookie-parser"); // Middleware for parsing cookies
 
-const LoginRoutes = require("./routes/LoginRoutes");
-const DeveloperRoutes = require("./routes/DeveloperRoutes");
-const ProjectRoutes = require("./routes/ProjectRoutes");
-const TowerRoutes = require("./routes/TowerRoutes");
-const SeriesRoutes = require("./routes/SeriesRoutes");
-const DashboardRoutes = require("./routes/DashboardRoutes");
-const { handleUploadError } = require('./middleware/UploadMiddleware');
+// Import route handlers for different API endpoints
+const LoginRoutes = require("./routes/LoginRoutes"); // Handles user authentication
+const DeveloperRoutes = require("./routes/DeveloperRoutes"); // Handles developer-related operations
+const ProjectRoutes = require("./routes/ProjectRoutes"); // Manages project-related functionalities
+const TowerRoutes = require("./routes/TowerRoutes"); // Manages tower-related operations
+const SeriesRoutes = require("./routes/SeriesRoutes"); // Manages series-related functionalities
+const DashboardRoutes = require("./routes/DashboardRoutes"); // Handles dashboard functionalities
+const { handleUploadError } = require('./middleware/UploadMiddleware'); // Middleware for handling upload errors
 
+// Create an instance of an Express application
 const app = express();
+
+// Use cookieParser middleware to parse cookies attached to the client requests
 app.use(cookieParser());
+
+// Use bodyParser middleware to parse incoming request bodies as JSON
 app.use(bodyParser.json());
 
+// Configure CORS settings
 app.use(
   cors({
-    origin: true,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: true, // Allow requests from any origin
+    credentials: true, // Allow credentials to be included in requests
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
   })
 );
 
-app.use("/api/auth", LoginRoutes);
-app.use("/api/developers", DeveloperRoutes);
-app.use("/api/projects", ProjectRoutes);
-app.use("/api/towers", TowerRoutes);
-app.use("/api/series", SeriesRoutes);
-app.use('/api/dashboard', DashboardRoutes);
+// Set up API routes for different functionalities
+app.use("/api/auth", LoginRoutes); // Authentication routes
+app.use("/api/developers", DeveloperRoutes); // Developer-related routes
+app.use("/api/projects", ProjectRoutes); // Project-related routes
+app.use("/api/towers", TowerRoutes); // Tower-related routes
+app.use("/api/series", SeriesRoutes); // Series-related routes
+app.use('/api/dashboard', DashboardRoutes); // Dashboard-related routes
 
-// Error handling middleware last
+// Register the error handling middleware at the end of the middleware stack
+// This will catch any upload errors occurring in the preceding routes
 app.use(handleUploadError);
 
+// Define the port to run the server, defaulting to 3000 if not specified in environment variables
 const PORT = process.env.PORT || 3000;
 
+// Start the Express server and listen on the specified port
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`); // Log the port number for reference
 });

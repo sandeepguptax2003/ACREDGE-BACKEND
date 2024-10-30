@@ -2,12 +2,13 @@ const Project = require('../models/ProjectModel');
 const { db } = require('../config/firebase');
 const { uploadMultipleFiles, deleteMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
 
+// Function to create a new project with associated files
 exports.createProject = async (req, res) => {
   try {
-    const projectData = req.body;
-    const files = req.files;
+    const projectData = req.body;  // Get project data from the request body
+    const files = req.files;       // Get uploaded files
 
-    // Create document first to get ID
+    // Create a Firestore document to store the project and get its unique ID
     const docRef = await db.collection(Project.collectionName).add({
       createdBy: req.user.email,
       createdOn: new Date(),
@@ -16,6 +17,7 @@ exports.createProject = async (req, res) => {
     console.log("Received project data:", projectData);
     console.log("Files received:", files);
 
+    // Upload images if provided, save URLs in projectData
     if (files.images && Array.isArray(files.images)) {
       try {
         console.log("Uploading images...");
@@ -23,11 +25,12 @@ exports.createProject = async (req, res) => {
         console.log("Uploaded images URLs:", projectData.images);
       } catch (error) {
         console.error('Error uploading images:', error);
-        await docRef.delete();
+        await docRef.delete();  // Delete document if there is an error
         return res.status(400).json({ error: 'Error uploading images. ' + error.message });
       }
     }
 
+    // Upload videos if provided, save URLs in projectData
     if (files.videos && Array.isArray(files.videos)) {
       try {
         console.log("Uploading videos...");
@@ -41,6 +44,7 @@ exports.createProject = async (req, res) => {
       }
     }
 
+    // Upload brochure if provided and store its URL
     if (files.brochureUrl) {
       try {
         console.log("Uploading brochure...");
@@ -56,22 +60,7 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    if (files.layoutPlanUrl) {
-      try {
-        console.log("Uploading layout plan...");
-        const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', docRef.id);
-        projectData.layoutPlanUrl = layoutPlanUrl;
-        console.log("Layout plan URL:", layoutPlanUrl);
-      } catch (error) {
-        console.error('Error uploading layout plan:', error);
-        if (projectData.images) await deleteMultipleFiles(projectData.images);
-        if (projectData.videos) await deleteMultipleFiles(projectData.videos);
-        if (projectData.brochureUrl) await deleteFromFirebase(projectData.brochureUrl);
-        await docRef.delete();
-        return res.status(400).json({ error: 'Error uploading layout plan. ' + error.message });
-      }
-    }
-
+    // Validate project data based on model constraints
     const errors = Project.validate(projectData);
     if (errors.length > 0) {
       console.log("Validation errors:", errors);
@@ -83,6 +72,7 @@ exports.createProject = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
+    // Save final project data in Firestore document
     projectData.createdBy = req.user.email;
     projectData.createdOn = new Date();
 
@@ -97,6 +87,7 @@ exports.createProject = async (req, res) => {
   }
 };
 
+// Function to retrieve all projects from Firestore
 exports.getAllProjects = async (req, res) => {
   try {
     const snapshot = await db.collection(Project.collectionName).get();
@@ -107,6 +98,7 @@ exports.getAllProjects = async (req, res) => {
   }
 };
 
+// Function to retrieve a specific project by its ID
 exports.getProjectById = async (req, res) => {
   try {
     const docRef = await db.collection(Project.collectionName).doc(req.params.id).get();
@@ -119,19 +111,21 @@ exports.getProjectById = async (req, res) => {
   }
 };
 
+// Function to update an existing project with new data and/or files
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
     const files = req.files;
 
+    // Retrieve existing project data to preserve non-updated fields
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
-
     const existingData = projectDoc.data();
 
+    // Handle file updates and deletions as specified in request
     if (files) {
       if (files.images) {
         if (req.body.deleteImages) {
@@ -187,20 +181,19 @@ exports.updateProject = async (req, res) => {
       }
     }
 
+    // Validate the updated project data
     const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
-    if (!req.user || !req.user.email) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-
+    // Preserve createdBy and createdOn fields; update metadata fields
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
+    // Update the Firestore document with merged project data
     const project = new Project({ ...existingData, ...updatedData });
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
 
@@ -209,16 +202,40 @@ exports.updateProject = async (req, res) => {
       data: project.toFirestore()
     });
   } catch (error) {
-    console.error('Error in Update Project:', error);
+    console.error('Error updating project:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// Function to delete a project and its associated files from Firestore
 exports.deleteProject = async (req, res) => {
   try {
-    await db.collection(Project.collectionName).doc(req.params.id).delete();
+    const { id } = req.params;
+
+    // Retrieve the project document
+    const docRef = await db.collection(Project.collectionName).doc(id).get();
+    if (!docRef.exists) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    const projectData = docRef.data();
+
+    // Delete files associated with the project if they exist
+    if (projectData.images) {
+      await deleteMultipleFiles(projectData.images);
+    }
+    if (projectData.videos) {
+      await deleteMultipleFiles(projectData.videos);
+    }
+    if (projectData.brochureUrl) {
+      await deleteFromFirebase(projectData.brochureUrl);
+    }
+
+    // Finally, delete the project document
+    await db.collection(Project.collectionName).doc(id).delete();
+
     res.status(200).json({ message: 'Project deleted successfully' });
   } catch (error) {
+    console.error('Error deleting project:', error);
     res.status(500).json({ error: error.message });
   }
 };

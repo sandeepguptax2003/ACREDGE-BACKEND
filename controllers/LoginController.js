@@ -1,19 +1,26 @@
+// Import necessary modules
 const { admin } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const NodeCache = require('node-cache');
-const tokenCache = new NodeCache({ stdTTL: 300 });
 
+// Configure a cache for storing tokens temporarily
+const tokenCache = new NodeCache({ stdTTL: 300 });  // Tokens cached for 5 minutes
+
+// Generate a 6-digit OTP
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Validate if the email ends with "@acredge.in"
 const validateEmail = (email) => {
   const regex = /@acredge\.in$/;
   return regex.test(email);
 };
 
+// Send OTP to the provided email using nodemailer
 const sendEmail = async (to, otp) => {
+  // Configure transporter for Gmail
   let transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -22,6 +29,7 @@ const sendEmail = async (to, otp) => {
     }
   });
 
+  // Send OTP email with both plain text and HTML formats
   let info = await transporter.sendMail({
     from: '"Admin Login" <sandeephunter2002@gmail.com>',
     to: to,
@@ -33,23 +41,28 @@ const sendEmail = async (to, otp) => {
   console.log("Message sent: %s", info.messageId);
 };
 
+// Handle email verification and OTP sending
 exports.verifyEmail = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Check if email meets validation criteria
     if (!validateEmail(email)) {
       return res.status(400).json({ message: "Email doesn't match the required format." });
     }
 
+    // Generate OTP and set expiration (5 minutes)
     const otp = generateOTP();
     const expirationTime = Date.now() + 300000;
 
+    // Store OTP in Firestore
     await admin.firestore().collection('otps').doc(email).set({
       otp,
       expirationTime,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    // Send OTP to the email address
     await sendEmail(email, otp);
 
     res.status(200).json({ message: "Verified successfully. OTP sent to email." });
@@ -59,42 +72,39 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
+// Verify OTP and issue JWT token
 exports.verifyOTP = async (req, res) => {
   try {
-    console.log('Entering verifyOTP function');
     const { email, otp, rememberMe } = req.body;
-    console.log(`Received OTP verification request for email: ${email}, rememberMe: ${rememberMe}`);
 
+    // Retrieve OTP document for the email
     const otpDoc = await admin.firestore().collection('otps').doc(email).get();
     if (!otpDoc.exists || otpDoc.data().otp !== otp) {
-      console.log(`Invalid or expired OTP for email: ${email}`);
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
-    console.log(`Valid OTP provided for email: ${email}`);
+    // OTP is valid, delete it from Firestore
     await admin.firestore().collection('otps').doc(email).delete();
-    console.log(`Deleted OTP document for email: ${email}`);
 
+    // Set token expiration based on 'rememberMe' flag
     const expiresIn = rememberMe ? '7d' : '24h';
     const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn });
-    console.log(`Generated JWT token for email: ${email}, expiresIn: ${expiresIn}`);
 
+    // Set token expiration date for Firestore storage
     const expirationDate = new Date(Date.now() + (rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000));
     await admin.firestore().collection('tokens').doc(email).set({
       token,
       expiresAt: admin.firestore.Timestamp.fromDate(expirationDate)
     });
-    console.log(`Stored token in Firestore for email: ${email}, expires at: ${expirationDate}`);
 
+    // Send JWT as a secure cookie to the client
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
       maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
     });
-    console.log(`Set cookie for email: ${email}, token: ${token.substring(0, 20)}...`);
 
-    console.log(`Login successful for email: ${email}`);
     res.status(200).json({ message: "Logged in successfully" });
   } catch (error) {
     console.error('Error in verifyOTP:', error);
@@ -102,48 +112,41 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
+// Middleware to check authentication status via token
 exports.isAuthenticated = async (req, res, next) => {
   try {
-    console.log('Entering isAuthenticated middleware');
+    // Extract token from cookies or authorization header
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-      console.log('No token provided in cookies or authorization header');
       return res.status(401).json({ message: "No token provided." });
     }
 
-    console.log(`Token found: ${token.substring(0, 20)}...`);
-
+    // Verify token with JWT and extract email
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(`Token verified successfully for email: ${decoded.email}`);
     } catch (error) {
-      console.log('Token verification failed:', error.message);
       return res.status(401).json({ message: "Invalid token." });
     }
-    
+
+    // Check cache for token to improve performance
     const cachedToken = tokenCache.get(decoded.email);
     if (cachedToken === token) {
-      console.log(`Token found in cache for email: ${decoded.email}`);
       req.user = { email: decoded.email };
       return next();
     }
 
-    console.log(`Token not in cache, checking Firestore for email: ${decoded.email}`);
+    // Check Firestore if not in cache
     const tokenDoc = await admin.firestore().collection('tokens').doc(decoded.email).get();
-
     if (!tokenDoc.exists || tokenDoc.data().token !== token || tokenDoc.data().expiresAt.toDate() < new Date()) {
-      console.log(`Invalid or expired token in Firestore for email: ${decoded.email}`);
       return res.status(401).json({ message: "Invalid or expired token." });
     }
 
-    // Cache the valid token
+    // Cache valid token for subsequent requests
     tokenCache.set(decoded.email, token);
-    console.log(`Token cached for email: ${decoded.email}`);
 
     req.user = { email: decoded.email };
-    console.log(`User authenticated: ${decoded.email}`);
     next();
   } catch (error) {
     console.error('Error in isAuthenticated:', error);
@@ -151,35 +154,30 @@ exports.isAuthenticated = async (req, res, next) => {
   }
 };
 
+// Log out the user and clear token
 exports.logout = async (req, res) => {
   try {
-    console.log('Entering logout function');
     const token = req.cookies.token;
-    
+
     if (!token) {
-      console.log('No token found in cookies during logout');
       return res.status(401).json({ message: "Already Logged Out, Please login again to continue." });
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(`Token verified for logout, email: ${decoded.email}`);
       await admin.firestore().collection('tokens').doc(decoded.email).delete();
-      console.log(`Deleted token from Firestore for email: ${decoded.email}`);
       tokenCache.del(decoded.email);
-      console.log(`Removed token from cache for email: ${decoded.email}`);
     } catch (jwtError) {
       console.error('JWT verification failed during logout:', jwtError);
     }
 
+    // Clear the cookie from the response
     res.clearCookie('token', {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
     });
-    console.log('Cleared token cookie');
 
-    console.log('Logout successful');
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error('Logout error:', error);
@@ -187,7 +185,7 @@ exports.logout = async (req, res) => {
   }
 };
 
+// Check if user is authenticated and return success response
 exports.checkAuth = async (req, res) => {
-  console.log(`CheckAuth called, user: ${req.user.email}`);
   res.status(200).json({ message: "Authenticated", user: req.user });
 };

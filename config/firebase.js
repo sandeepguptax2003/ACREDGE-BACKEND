@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 require('dotenv').config();
 
+// Set up Firebase service account credentials using environment variables
 const serviceAccount = {
   type: process.env.FIREBASE_TYPE,
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -14,12 +15,15 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
 };
 
+// Initialize Firebase Admin SDK
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+  credential: admin.credential.cert(serviceAccount), // Authenticate using service account
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET // Set Firebase Storage Bucket
 });
 
+// Firestore and Storage references for global access
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
+// Export Firebase services for use in other parts of the application
 module.exports = { admin, db, bucket };
