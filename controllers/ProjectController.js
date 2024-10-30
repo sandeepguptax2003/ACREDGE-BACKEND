@@ -129,45 +129,51 @@ exports.updateProject = async (req, res) => {
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
+
     const existingData = projectDoc.data();
 
-    if (files || req.body.deleteImages || req.body.deleteVideos) {
-      // Handle images
-      if (files?.images || req.body.deleteImages) {
+    if (files) {
+      if (files.images) {
+        if (req.body.deleteImages) {
+          try {
+            const deleteImages = JSON.parse(req.body.deleteImages);
+            await deleteMultipleFiles(deleteImages);
+            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
+          } catch (error) {
+            console.error('Error deleting images:', error);
+            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
+          }
+        }
         try {
-          const deleteImages = req.body.deleteImages ? JSON.parse(req.body.deleteImages) : [];
-          updatedData.images = await handleFileUpdates(
-            existingData.images,
-            deleteImages,
-            files?.images,
-            'images',
-            id
-          );
+          const newImages = await uploadMultipleFiles(files.images, 'images', id);
+          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
         } catch (error) {
-          console.error('Error handling images:', error);
-          return res.status(400).json({ error: 'Error handling images. ' + error.message });
+          console.error('Error uploading new images:', error);
+          return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
         }
       }
 
-      // Handle videos
-      if (files?.videos || req.body.deleteVideos) {
+      if (files.videos) {
+        if (req.body.deleteVideos) {
+          try {
+            const deleteVideos = JSON.parse(req.body.deleteVideos);
+            await deleteMultipleFiles(deleteVideos);
+            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
+          } catch (error) {
+            console.error('Error deleting videos:', error);
+            return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
+          }
+        }
         try {
-          const deleteVideos = req.body.deleteVideos ? JSON.parse(req.body.deleteVideos) : [];
-          updatedData.videos = await handleFileUpdates(
-            existingData.videos,
-            deleteVideos,
-            files?.videos,
-            'videos',
-            id
-          );
+          const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
+          updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
         } catch (error) {
-          console.error('Error handling videos:', error);
-          return res.status(400).json({ error: 'Error handling videos. ' + error.message });
+          console.error('Error uploading new videos:', error);
+          return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
         }
       }
 
-      // Handle brochure (single file)
-      if (files?.brochureUrl) {
+      if (files.brochureUrl) {
         try {
           if (existingData.brochureUrl) {
             await deleteFromFirebase(existingData.brochureUrl);
@@ -190,7 +196,6 @@ exports.updateProject = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Update metadata
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;

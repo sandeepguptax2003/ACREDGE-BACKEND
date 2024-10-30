@@ -122,43 +122,53 @@ exports.updateSeries = async (req, res) => {
     }
     const existingData = seriesDoc.data();
 
-    if (files || req.body.deleteInsideImages || req.body.deleteInsideVideos) {
+    if (files) {
       // Handle inside images
-      if (files?.insideImagesUrls || req.body.deleteInsideImages) {
+      if (files.insideImagesUrls) {
+        if (req.body.deleteInsideImages) {
+          try {
+            const deleteImages = JSON.parse(req.body.deleteInsideImages);
+            await deleteMultipleFiles(deleteImages);
+            updatedData.insideImagesUrls = (existingData.insideImagesUrls || []).filter(url => !deleteImages.includes(url));
+          } catch (error) {
+            console.error('Error deleting inside images:', error);
+            return res.status(400).json({ error: 'Error deleting inside images. ' + error.message });
+          }
+        }
+
         try {
-          const deleteImages = req.body.deleteInsideImages ? JSON.parse(req.body.deleteInsideImages) : [];
-          updatedData.insideImagesUrls = await handleFileUpdates(
-            existingData.insideImagesUrls,
-            deleteImages,
-            files?.insideImagesUrls,
-            'insideImagesUrls',
-            id
-          );
+          const newImages = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', id);
+          updatedData.insideImagesUrls = [...(updatedData.insideImagesUrls || existingData.insideImagesUrls || []), ...newImages];
         } catch (error) {
-          console.error('Error handling inside images:', error);
-          return res.status(400).json({ error: 'Error handling inside images. ' + error.message });
+          console.error('Error uploading new inside images:', error);
+          return res.status(400).json({ error: 'Error uploading new inside images. ' + error.message });
         }
       }
 
       // Handle inside videos
-      if (files?.insideVideosUrls || req.body.deleteInsideVideos) {
+      if (files.insideVideosUrls) {
+        if (req.body.deleteInsideVideos) {
+          try {
+            const deleteVideos = JSON.parse(req.body.deleteInsideVideos);
+            await deleteMultipleFiles(deleteVideos);
+            updatedData.insideVideosUrls = (existingData.insideVideosUrls || []).filter(url => !deleteVideos.includes(url));
+          } catch (error) {
+            console.error('Error deleting inside videos:', error);
+            return res.status(400).json({ error: 'Error deleting inside videos. ' + error.message });
+          }
+        }
+
         try {
-          const deleteVideos = req.body.deleteInsideVideos ? JSON.parse(req.body.deleteInsideVideos) : [];
-          updatedData.insideVideosUrls = await handleFileUpdates(
-            existingData.insideVideosUrls,
-            deleteVideos,
-            files?.insideVideosUrls,
-            'insideVideosUrls',
-            id
-          );
+          const newVideos = await uploadMultipleFiles(files.insideVideosUrls, 'insideVideosUrls', id);
+          updatedData.insideVideosUrls = [...(updatedData.insideVideosUrls || existingData.insideVideosUrls || []), ...newVideos];
         } catch (error) {
-          console.error('Error handling inside videos:', error);
-          return res.status(400).json({ error: 'Error handling inside videos. ' + error.message });
+          console.error('Error uploading new inside videos:', error);
+          return res.status(400).json({ error: 'Error uploading new inside videos. ' + error.message });
         }
       }
 
-      // Handle layout plan (single file)
-      if (files?.layoutPlanUrl) {
+      // Handle layout plan
+      if (files.layoutPlanUrl) {
         try {
           if (existingData.layoutPlanUrl) {
             await deleteFromFirebase(existingData.layoutPlanUrl);
@@ -181,7 +191,6 @@ exports.updateSeries = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Update metadata
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
@@ -189,8 +198,8 @@ exports.updateSeries = async (req, res) => {
 
     const series = new Series({ ...existingData, ...updatedData });
     await db.collection(Series.collectionName).doc(id).update(series.toFirestore());
-
-    res.status(200).json({
+    
+    res.status(200).json({ 
       message: 'Series updated successfully',
       data: series.toFirestore()
     });

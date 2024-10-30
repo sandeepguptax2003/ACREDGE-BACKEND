@@ -17,7 +17,7 @@ const generateFileName = (file, folder, entityId = '') => {
   const uuid = uuidv4();
   const ext = path.extname(file.originalname);
   
-  // Create folder structure with entityId
+  // Create folder structure with entityI
   const folderPath = entityId 
     ? `${FOLDER_PATHS[folder]}/${entityId}`
     : FOLDER_PATHS[folder];
@@ -81,18 +81,12 @@ const uploadMultipleFiles = async (files, folder, entityId = '') => {
   }
 };
 
-const getFilesToDelete = (existingUrls = [], newUrls = []) => {
-  if (!existingUrls) return [];
-  if (!newUrls) return existingUrls;
-  return existingUrls.filter(url => !newUrls.includes(url));
-};
-
 const deleteFromFirebase = async (fileUrl) => {
   if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.trim()) {
     console.error('Invalid fileUrl provided to deleteFromFirebase:', fileUrl);
     return;
   }
-
+  
   try {
     let fileName;
     if (fileUrl.startsWith('https://storage.googleapis.com/')) {
@@ -109,14 +103,14 @@ const deleteFromFirebase = async (fileUrl) => {
       fileName = fileUrl;
     }
 
-    fileName = fileName.split('?')[0]; // Remove query parameters
-    fileName = decodeURIComponent(fileName); // Decode URL-encoded characters
+    fileName = fileName.split('?')[0];
+    fileName = decodeURIComponent(fileName);
 
     console.log('Attempting to delete file:', fileName);
 
     const file = bucket.file(fileName);
-    const [exists] = await file.exists();
     
+    const [exists] = await file.exists();
     if (!exists) {
       console.log('File does not exist:', fileName);
       return;
@@ -130,33 +124,9 @@ const deleteFromFirebase = async (fileUrl) => {
   }
 };
 
-const handleFileUpdates = async (
-  existingUrls,
-  filesToDelete,
-  newFiles,
-  fieldName,
-  entityId
-) => {
-  let updatedUrls = existingUrls || [];
-
-  // Handle deletions
-  if (filesToDelete && filesToDelete.length > 0) {
-    await deleteMultipleFiles(filesToDelete);
-    updatedUrls = updatedUrls.filter(url => !filesToDelete.includes(url));
-  }
-
-  // Handle new uploads
-  if (newFiles) {
-    const newUrls = await uploadMultipleFiles(newFiles, fieldName, entityId);
-    updatedUrls = [...updatedUrls, ...(Array.isArray(newUrls) ? newUrls : [newUrls])];
-  }
-
-  return updatedUrls;
-};
-
 const deleteMultipleFiles = async (fileUrls) => {
   if (!fileUrls) return;
-
+  
   const urls = Array.isArray(fileUrls) ? fileUrls : [fileUrls];
   try {
     const deletePromises = urls.map(url => deleteFromFirebase(url));
@@ -167,12 +137,32 @@ const deleteMultipleFiles = async (fileUrls) => {
   }
 };
 
+const validateFiles = (files, type, currentCount = 0) => {
+  const { MAX_COUNTS, FILE_LIMITS } = require('../middleware/UploadMiddleware');
+  
+  if (!files) return null;
+  
+  const filesArray = Array.isArray(files) ? files : [files];
+  const totalCount = filesArray.length + currentCount;
+  
+  if (totalCount > MAX_COUNTS[type]) {
+    throw new Error(`Maximum ${MAX_COUNTS[type]} ${type} allowed`);
+  }
+
+  filesArray.forEach(file => {
+    if (file.size > FILE_LIMITS[type]) {
+      throw new Error(`${type} size must be less than ${FILE_LIMITS[type] / (1024 * 1024)}MB`);
+    }
+  });
+
+  return true;
+};
+
 module.exports = {
   uploadToFirebase,
   deleteFromFirebase,
   uploadMultipleFiles,
   deleteMultipleFiles,
-  handleFileUpdates,
-  getFilesToDelete,
+  validateFiles,
   FOLDER_PATHS
 };
