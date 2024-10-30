@@ -1,6 +1,6 @@
 const Developer = require('../models/DeveloperModel');
 const { db } = require('../config/firebase');
-const { uploadMultipleFiles, deleteMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
+const { uploadMultipleFiles, deleteFromFirebase } = require('../utils/FilesUpload');
 
 exports.createDeveloper = async (req, res) => {
   try {
@@ -13,15 +13,15 @@ exports.createDeveloper = async (req, res) => {
       createdOn: new Date(),
     });
     
-    if (files && files.images) {
-      const [images] = await uploadMultipleFiles(files.images, 'images', docRef.id);
-      developerData.images = images;
+    if (files && files.logoUrl) {
+      const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', docRef.id);
+      developerData.logoUrl = logoUrl;
     }
 
     const errors = Developer.validate(developerData);
     if (errors.length > 0) {
-      if (developerData.images) {
-        await deleteFromFirebase(developerData.images);
+      if (developerData.logoUrl) {
+        await deleteFromFirebase(developerData.logoUrl);
       }
       await docRef.delete(); // Clean up the document if validation fails
       return res.status(400).json({ errors });
@@ -85,15 +85,15 @@ exports.updateDeveloper = async (req, res) => {
 
     const existingData = developerDoc.data();
 
-    if (files && files.images) {
+    if (files && files.logoUrl) {
       try {
-        const [images] = await uploadMultipleFiles(files.images, 'images', id);
-        updatedData.images = images;
+        const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
+        updatedData.logoUrl = logoUrl;
 
-        if (existingData.images && typeof existingData.images === 'string' && existingData.images.trim() !== '') {
+        if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
           try {
-            await deleteFromFirebase(existingData.images);
-            console.log('Successfully deleted old logo:', existingData.images);
+            await deleteFromFirebase(existingData.logoUrl);
+            console.log('Successfully deleted old logo:', existingData.logoUrl);
           } catch (deleteError) {
             console.error("Error deleting old logo:", deleteError);
           }
@@ -106,9 +106,9 @@ exports.updateDeveloper = async (req, res) => {
 
     const errors = Developer.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
-      if (updatedData.images) {
+      if (updatedData.logoUrl) {
         try {
-          await deleteFromFirebase(updatedData.images);
+          await deleteFromFirebase(updatedData.logoUrl);
         } catch (error) {
           console.error("Error deleting invalid logo:", error);
         }

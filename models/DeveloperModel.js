@@ -9,7 +9,7 @@ class Developer {
     this.totalSqFtDelivered = parseInt(data.totalSqFtDelivered, 10);
     this.description = data.description;
     this.websiteLink = data.websiteLink;
-    this.images = data.images;
+    this.logoUrl = data.logoUrl;
     this.age = this.calculateAge(data.incorporationDate);
     this.status = data.status;
     this.createdBy = data.createdBy || null;
@@ -34,7 +34,7 @@ class Developer {
       
     if (!data.description || data.description.length < 50) errors.push('Description must be at least 50 characters long');
     if (!data.websiteLink || !this.isValidUrl(data.websiteLink)) errors.push('Valid website link is required');
-    if (!data.images || !this.isValidImageFormat(data.images)) errors.push('Logo must be a PNG or JPG file');
+    if (!data.logoUrl || !this.isValidImageFormat(data.logoUrl)) errors.push('Logo must be a PNG or JPG file');
     if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
     return errors;
   }
@@ -67,7 +67,7 @@ class Developer {
       totalSqFtDelivered: this.totalSqFtDelivered,
       description: this.description,
       websiteLink: this.websiteLink,
-      images: this.images,
+      logoUrl: this.logoUrl,
       age: this.age,
       status: this.status,
       createdBy: this.createdBy,

@@ -3,7 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const FOLDER_PATHS = {
-  images: 'DeveloperLogo',
+  logoUrl: 'DeveloperLogo',
   images: 'ProjectImages',
   videos: 'ProjectVideos',
   brochureUrl: 'ProjectBrochures',
@@ -17,7 +17,7 @@ const generateFileName = (file, folder, entityId = '') => {
   const uuid = uuidv4();
   const ext = path.extname(file.originalname);
   
-  // Create folder structure with entityI
+  // Create folder structure with entityId
   const folderPath = entityId 
     ? `${FOLDER_PATHS[folder]}/${entityId}`
     : FOLDER_PATHS[folder];
@@ -103,8 +103,8 @@ const deleteFromFirebase = async (fileUrl) => {
       fileName = fileUrl;
     }
 
-    fileName = fileName.split('?')[0];
-    fileName = decodeURIComponent(fileName);
+    fileName = fileName.split('?')[0]; // Remove query parameters
+    fileName = decodeURIComponent(fileName); // Decode URL-encoded characters
 
     console.log('Attempting to delete file:', fileName);
 
@@ -135,27 +135,6 @@ const deleteMultipleFiles = async (fileUrls) => {
     console.error('Error deleting files:', error);
     throw error;
   }
-};
-
-const validateFiles = (files, type, currentCount = 0) => {
-  const { MAX_COUNTS, FILE_LIMITS } = require('../middleware/UploadMiddleware');
-  
-  if (!files) return null;
-  
-  const filesArray = Array.isArray(files) ? files : [files];
-  const totalCount = filesArray.length + currentCount;
-  
-  if (totalCount > MAX_COUNTS[type]) {
-    throw new Error(`Maximum ${MAX_COUNTS[type]} ${type} allowed`);
-  }
-
-  filesArray.forEach(file => {
-    if (file.size > FILE_LIMITS[type]) {
-      throw new Error(`${type} size must be less than ${FILE_LIMITS[type] / (1024 * 1024)}MB`);
-    }
-  });
-
-  return true;
 };
 
 module.exports = {
