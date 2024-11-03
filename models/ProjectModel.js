@@ -50,19 +50,9 @@ class Project {
     if (!data.description || data.description.length < 50) errors.push('Project description must be at least 50 characters');
     if (!data.launchDate || isNaN(new Date(data.launchDate).getTime())) errors.push('Valid launch date is required');
 
-    // Validating images and videos.
-    if (data.images) {
-      if (!Array.isArray(data.images)) errors.push('Images must be an array');
-      data.images.forEach(url => {
-        if (!this.isValidUrl(url)) errors.push('Invalid image URL format');
-      });
-    }
-    if (data.videos) {
-      if (!Array.isArray(data.videos)) errors.push('Videos must be an array');
-      data.videos.forEach(url => {
-        if (!this.isValidUrl(url)) errors.push('Invalid video URL format');
-      });
-    }
+    // images and videos.
+    if (!Array.isArray(data.images)) errors.push('images must be an array');
+    if (!Array.isArray(data.videos)) errors.push('videos must be an array');
     
     // Validating RERA status and required fields based on status.
     if (!['Approved', 'Not Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Approved or Not Approved');
