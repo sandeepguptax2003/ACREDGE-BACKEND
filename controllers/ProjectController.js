@@ -118,55 +118,93 @@ exports.updateProject = async (req, res) => {
     const updatedData = req.body;
     const files = req.files;
 
-    // Retrieve existing project data to preserve non-updated fields
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    const existingData = projectDoc.data();
 
-    // Handle file updates and deletions as specified in request
+    const existingData = projectDoc.data();
+    
     if (files) {
+      // Handle images
       if (files.images) {
         if (req.body.deleteImages) {
           try {
             const deleteImages = JSON.parse(req.body.deleteImages);
             await deleteMultipleFiles(deleteImages);
-            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
+            // Ensure we're working with arrays
+            const existingImages = Array.isArray(existingData.images) ? existingData.images : [];
+            updatedData.images = existingImages.filter(url => !deleteImages.includes(url));
           } catch (error) {
             console.error('Error deleting images:', error);
             return res.status(400).json({ error: 'Error deleting images. ' + error.message });
           }
         }
+
         try {
           const newImages = await uploadMultipleFiles(files.images, 'images', id);
-          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
+          // Ensure we're working with arrays and combine existing and new images
+          const existingImages = Array.isArray(updatedData.images) ? updatedData.images : 
+                               Array.isArray(existingData.images) ? existingData.images : [];
+          updatedData.images = [...existingImages, ...(Array.isArray(newImages) ? newImages : [newImages])];
         } catch (error) {
           console.error('Error uploading new images:', error);
           return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
         }
+      } else if (req.body.deleteImages) {
+        // Handle case where we're only deleting images without uploading new ones
+        try {
+          const deleteImages = JSON.parse(req.body.deleteImages);
+          await deleteMultipleFiles(deleteImages);
+          // Ensure we're working with arrays
+          const existingImages = Array.isArray(existingData.images) ? existingData.images : [];
+          updatedData.images = existingImages.filter(url => !deleteImages.includes(url));
+        } catch (error) {
+          console.error('Error deleting images:', error);
+          return res.status(400).json({ error: 'Error deleting images. ' + error.message });
+        }
       }
 
+      // Handle videos
       if (files.videos) {
         if (req.body.deleteVideos) {
           try {
             const deleteVideos = JSON.parse(req.body.deleteVideos);
             await deleteMultipleFiles(deleteVideos);
-            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
+            // Ensure we're working with arrays
+            const existingVideos = Array.isArray(existingData.videos) ? existingData.videos : [];
+            updatedData.videos = existingVideos.filter(url => !deleteVideos.includes(url));
           } catch (error) {
             console.error('Error deleting videos:', error);
             return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
           }
         }
+
         try {
           const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
-          updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
+          // Ensure we're working with arrays and combine existing and new videos
+          const existingVideos = Array.isArray(updatedData.videos) ? updatedData.videos : 
+                                Array.isArray(existingData.videos) ? existingData.videos : [];
+          updatedData.videos = [...existingVideos, ...(Array.isArray(newVideos) ? newVideos : [newVideos])];
         } catch (error) {
           console.error('Error uploading new videos:', error);
           return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
         }
+      } else if (req.body.deleteVideos) {
+        // Handle case where we're only deleting videos without uploading new ones
+        try {
+          const deleteVideos = JSON.parse(req.body.deleteVideos);
+          await deleteMultipleFiles(deleteVideos);
+          // Ensure we're working with arrays
+          const existingVideos = Array.isArray(existingData.videos) ? existingData.videos : [];
+          updatedData.videos = existingVideos.filter(url => !deleteVideos.includes(url));
+        } catch (error) {
+          console.error('Error deleting videos:', error);
+          return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
+        }
       }
 
+      // Handle brochure
       if (files.brochureUrl) {
         try {
           if (existingData.brochureUrl) {
@@ -181,19 +219,24 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    // Validate the updated project data
-    const errors = Project.validate({ ...existingData, ...updatedData });
+    // Ensure arrays exist before validation
+    const dataToValidate = {
+      ...existingData,
+      ...updatedData,
+      images: updatedData.images || existingData.images || [],
+      videos: updatedData.videos || existingData.videos || []
+    };
+
+    const errors = Project.validate(dataToValidate);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
-    // Preserve createdBy and createdOn fields; update metadata fields
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    // Update the Firestore document with merged project data
     const project = new Project({ ...existingData, ...updatedData });
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
 
