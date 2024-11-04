@@ -125,139 +125,130 @@ exports.updateProject = async (req, res) => {
     updatedData.images = Array.isArray(updatedData.images) ? updatedData.images : [];
     updatedData.videos = Array.isArray(updatedData.videos) ? updatedData.videos : [];
 
-    // Initialize arrays for tracking successful uploads
-    let newlyUploadedFiles = [];
+    // Track files to be deleted
+    let filesToDelete = {
+      images: [],
+      videos: [],
+      brochure: existingData.brochureUrl || null,
+    };
 
+    // Handle file updates
     try {
-      // Handle file updates
-      if (Object.keys(files).length > 0) {
-        // Handle images
-        if (files.images) {
-          // Handle image deletions first
-          if (updatedData.deleteImages) {
-            const deleteImages = Array.isArray(updatedData.deleteImages) 
-              ? updatedData.deleteImages 
-              : JSON.parse(updatedData.deleteImages);
-            
-            if (deleteImages && deleteImages.length > 0) {
-              await deleteMultipleFiles(deleteImages);
-              updatedData.images = (existingData.images || [])
-                .filter(url => !deleteImages.includes(url));
-            }
-            delete updatedData.deleteImages;
-          } else {
-            // If no deletions, maintain existing images
-            updatedData.images = Array.isArray(existingData.images) ? existingData.images : [];
-          }
-
-          // Upload new images
-          const newImages = await uploadMultipleFiles(
-            Array.isArray(files.images) ? files.images : [files.images],
-            'images',
-            id
+      // Handle images
+      if (files.images) {
+        // Handle image deletions first
+        if (updatedData.deleteImages) {
+          const deleteImages = Array.isArray(updatedData.deleteImages)
+            ? updatedData.deleteImages
+            : JSON.parse(updatedData.deleteImages);
+          filesToDelete.images = [...filesToDelete.images, ...deleteImages];
+          updatedData.images = (existingData.images || []).filter(
+            url => !deleteImages.includes(url)
           );
-          newlyUploadedFiles = [...newlyUploadedFiles, ...newImages];
-          updatedData.images = [...(updatedData.images || []), ...newImages];
         } else {
-          // If no new images, maintain existing ones
+          // If no deletions, maintain existing images
           updatedData.images = Array.isArray(existingData.images) ? existingData.images : [];
         }
 
-        // Similar handling for videos...
-        if (files.videos) {
-          // Handle video deletions first
-          if (updatedData.deleteVideos) {
-            const deleteVideos = Array.isArray(updatedData.deleteVideos)
-              ? updatedData.deleteVideos
-              : JSON.parse(updatedData.deleteVideos);
-            
-            if (deleteVideos && deleteVideos.length > 0) {
-              await deleteMultipleFiles(deleteVideos);
-              updatedData.videos = (existingData.videos || [])
-                .filter(url => !deleteVideos.includes(url));
-            }
-            delete updatedData.deleteVideos;
-          } else {
-            // If no deletions, maintain existing videos
-            updatedData.videos = Array.isArray(existingData.videos) ? existingData.videos : [];
-          }
+        // Upload new images
+        const newImages = await uploadMultipleFiles(
+          Array.isArray(files.images) ? files.images : [files.images],
+          'images',
+          id
+        );
+        updatedData.images = [...updatedData.images, ...newImages];
+      } else {
+        // If no new images, maintain existing ones
+        updatedData.images = Array.isArray(existingData.images) ? existingData.images : [];
+      }
 
-          // Upload new videos
-          const newVideos = await uploadMultipleFiles(
-            Array.isArray(files.videos) ? files.videos : [files.videos],
-            'videos',
-            id
+      // Similar handling for videos
+      if (files.videos) {
+        // Handle video deletions first
+        if (updatedData.deleteVideos) {
+          const deleteVideos = Array.isArray(updatedData.deleteVideos)
+            ? updatedData.deleteVideos
+            : JSON.parse(updatedData.deleteVideos);
+          filesToDelete.videos = [...filesToDelete.videos, ...deleteVideos];
+          updatedData.videos = (existingData.videos || []).filter(
+            url => !deleteVideos.includes(url)
           );
-          newlyUploadedFiles = [...newlyUploadedFiles, ...newVideos];
-          updatedData.videos = [...(updatedData.videos || []), ...newVideos];
         } else {
-          // If no new videos, maintain existing ones
+          // If no deletions, maintain existing videos
           updatedData.videos = Array.isArray(existingData.videos) ? existingData.videos : [];
         }
 
-        // Handle brochure...
-        if (files.brochureUrl) {
-          if (existingData.brochureUrl) {
-            await deleteFromFirebase(existingData.brochureUrl);
-          }
-          
-          const [brochureUrl] = await uploadMultipleFiles(
-            Array.isArray(files.brochureUrl) ? files.brochureUrl : [files.brochureUrl],
-            'brochureUrl',
-            id
-          );
-          newlyUploadedFiles.push(brochureUrl);
-          updatedData.brochureUrl = brochureUrl;
+        // Upload new videos
+        const newVideos = await uploadMultipleFiles(
+          Array.isArray(files.videos) ? files.videos : [files.videos],
+          'videos',
+          id
+        );
+        updatedData.videos = [...updatedData.videos, ...newVideos];
+      } else {
+        // If no new videos, maintain existing ones
+        updatedData.videos = Array.isArray(existingData.videos) ? existingData.videos : [];
+      }
+
+      // Handle brochure
+      if (files.brochureUrl) {
+        if (existingData.brochureUrl) {
+          filesToDelete.brochure = existingData.brochureUrl;
         }
+        const [brochureUrl] = await uploadMultipleFiles(
+          Array.isArray(files.brochureUrl) ? files.brochureUrl : [files.brochureUrl],
+          'brochureUrl',
+          id
+        );
+        updatedData.brochureUrl = brochureUrl;
+      } else {
+        // If no new brochure, maintain existing one
+        updatedData.brochureUrl = existingData.brochureUrl || null;
       }
-
-      // Ensure arrays are properly initialized before validation
-      const mergedData = {
-        ...existingData,
-        ...updatedData,
-        images: Array.isArray(updatedData.images) ? updatedData.images : (Array.isArray(existingData.images) ? existingData.images : []),
-        videos: Array.isArray(updatedData.videos) ? updatedData.videos : (Array.isArray(existingData.videos) ? existingData.videos : [])
-      };
-
-      const errors = Project.validate(mergedData);
-      if (errors.length > 0) {
-        // If validation fails, clean up any newly uploaded files
-        if (newlyUploadedFiles.length > 0) {
-          await deleteMultipleFiles(newlyUploadedFiles);
-        }
-        return res.status(400).json({ errors });
-      }
-
-      // Add metadata
-      if (!req.user?.email) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      const finalData = {
-        ...mergedData,
-        createdBy: existingData.createdBy,
-        createdOn: existingData.createdOn,
-        updatedBy: req.user.email,
-        updatedOn: new Date(),
-      };
-
-      // Create Project instance and update in Firestore
-      const project = new Project(finalData);
-      await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
-
-      res.status(200).json({
-        message: 'Project updated successfully',
-        data: project.toFirestore()
-      });
-      
     } catch (error) {
-      // If any error occurs during file handling, clean up newly uploaded files
-      if (newlyUploadedFiles.length > 0) {
-        await deleteMultipleFiles(newlyUploadedFiles);
-      }
-      throw error; // Re-throw to be caught by outer try-catch
+      console.error('Error handling files:', error);
+      return res.status(400).json({ error: 'Error handling files. ' + error.message });
     }
-    
+
+    // Ensure arrays are properly initialized before validation
+    const mergedData = {
+      ...existingData,
+      ...updatedData,
+      images: Array.isArray(updatedData.images) ? updatedData.images : (Array.isArray(existingData.images) ? existingData.images : []),
+      videos: Array.isArray(updatedData.videos) ? updatedData.videos : (Array.isArray(existingData.videos) ? existingData.videos : [])
+    };
+
+    const errors = Project.validate(mergedData);
+    if (errors.length > 0) {
+      // If validation fails, clean up any newly uploaded files
+      await cleanupFiles(filesToDelete);
+      return res.status(400).json({ errors });
+    }
+
+    // Add metadata
+    if (!req.user?.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const finalData = {
+      ...mergedData,
+      createdBy: existingData.createdBy,
+      createdOn: existingData.createdOn,
+      updatedBy: req.user.email,
+      updatedOn: new Date(),
+    };
+
+    // Create Project instance and update in Firestore
+    const project = new Project(finalData);
+    await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+
+    // Clean up files marked for deletion
+    await cleanupFiles(filesToDelete);
+
+    res.status(200).json({
+      message: 'Project updated successfully',
+      data: project.toFirestore()
+    });
   } catch (error) {
     console.error('Error in Update Project:', error);
     res.status(500).json({ 
@@ -266,6 +257,27 @@ exports.updateProject = async (req, res) => {
     });
   }
 };
+
+async function cleanupFiles(filesToDelete) {
+  try {
+    // Delete images
+    if (Array.isArray(filesToDelete.images) && filesToDelete.images.length > 0) {
+      await deleteMultipleFiles(filesToDelete.images);
+    }
+
+    // Delete videos
+    if (Array.isArray(filesToDelete.videos) && filesToDelete.videos.length > 0) {
+      await deleteMultipleFiles(filesToDelete.videos);
+    }
+
+    // Delete brochure
+    if (filesToDelete.brochure) {
+      await deleteFromFirebase(filesToDelete.brochure);
+    }
+  } catch (error) {
+    console.error('Error cleaning up files:', error);
+  }
+}
 
 // Function to delete a project and its associated files from Firestore
 exports.deleteProject = async (req, res) => {
