@@ -51,8 +51,37 @@ class Project {
     if (!data.launchDate || isNaN(new Date(data.launchDate).getTime())) errors.push('Valid launch date is required');
 
     // images and videos.
-    if (!Array.isArray(data.images)) errors.push('images must be an array');
-    if (!Array.isArray(data.videos)) errors.push('videos must be an array');
+    // Ensure data.images is treated as an array
+    if (data.images === undefined) {
+      data.images = [];
+    } else if (!Array.isArray(data.images)) {
+      errors.push('images must be an array');
+    }
+
+    // Ensure data.videos is treated as an array
+    if (data.videos === undefined) {
+      data.videos = [];
+    } else if (!Array.isArray(data.videos)) {
+      errors.push('videos must be an array');
+    }
+
+    // Validate each image URL if images array exists and is an array
+    if (Array.isArray(data.images)) {
+      data.images.forEach((url, index) => {
+        if (url && !this.isValidUrl(url)) {
+          errors.push(`Invalid URL format for image at index ${index}`);
+        }
+      });
+    }
+
+    // Validate each video URL if videos array exists and is an array
+    if (Array.isArray(data.videos)) {
+      data.videos.forEach((url, index) => {
+        if (url && !this.isValidUrl(url)) {
+          errors.push(`Invalid URL format for video at index ${index}`);
+        }
+      });
+    }
     
     // Validating RERA status and required fields based on status.
     if (!['Approved', 'Not Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Approved or Not Approved');
@@ -84,14 +113,15 @@ class Project {
   }
 
   // Helper method to validate if a string is a valid URL.
-  // static isValidUrl(string) {
-  //   try {
-  //     new URL(string); // Try creating a URL object; if it fails, it's invalid.
-  //     return true;
-  //   } catch (_) {
-  //     return false;
-  //   }
-  // }
+  static isValidUrl(string) {
+    if (!string || typeof string !== 'string') return false;
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // Method to convert project data to a Firestore-compatible format.
   toFirestore() {

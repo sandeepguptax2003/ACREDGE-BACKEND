@@ -108,11 +108,10 @@ exports.getProjectById = async (req, res) => {
 };
 
 // Function to update an existing project with new data and/or files
-// Function to update an existing project with new data and/or files
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedData = { ...req.body }; // Create a copy to avoid modifying req.body directly
+    const updatedData = { ...req.body };
     const files = req.files || {};
 
     // Get existing project
@@ -121,6 +120,10 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     const existingData = projectDoc.data();
+
+    // Initialize arrays if they don't exist
+    updatedData.images = Array.isArray(updatedData.images) ? updatedData.images : [];
+    updatedData.videos = Array.isArray(updatedData.videos) ? updatedData.videos : [];
 
     // Initialize arrays for tracking successful uploads
     let newlyUploadedFiles = [];
@@ -141,11 +144,10 @@ exports.updateProject = async (req, res) => {
               updatedData.images = (existingData.images || [])
                 .filter(url => !deleteImages.includes(url));
             }
-            // Remove deleteImages from updatedData as it's not part of the model
             delete updatedData.deleteImages;
           } else {
             // If no deletions, maintain existing images
-            updatedData.images = existingData.images || [];
+            updatedData.images = Array.isArray(existingData.images) ? existingData.images : [];
           }
 
           // Upload new images
@@ -156,9 +158,12 @@ exports.updateProject = async (req, res) => {
           );
           newlyUploadedFiles = [...newlyUploadedFiles, ...newImages];
           updatedData.images = [...(updatedData.images || []), ...newImages];
+        } else {
+          // If no new images, maintain existing ones
+          updatedData.images = Array.isArray(existingData.images) ? existingData.images : [];
         }
 
-        // Handle videos
+        // Similar handling for videos...
         if (files.videos) {
           // Handle video deletions first
           if (updatedData.deleteVideos) {
@@ -171,11 +176,10 @@ exports.updateProject = async (req, res) => {
               updatedData.videos = (existingData.videos || [])
                 .filter(url => !deleteVideos.includes(url));
             }
-            // Remove deleteVideos from updatedData as it's not part of the model
             delete updatedData.deleteVideos;
           } else {
             // If no deletions, maintain existing videos
-            updatedData.videos = existingData.videos || [];
+            updatedData.videos = Array.isArray(existingData.videos) ? existingData.videos : [];
           }
 
           // Upload new videos
@@ -186,11 +190,13 @@ exports.updateProject = async (req, res) => {
           );
           newlyUploadedFiles = [...newlyUploadedFiles, ...newVideos];
           updatedData.videos = [...(updatedData.videos || []), ...newVideos];
+        } else {
+          // If no new videos, maintain existing ones
+          updatedData.videos = Array.isArray(existingData.videos) ? existingData.videos : [];
         }
 
-        // Handle brochure
+        // Handle brochure...
         if (files.brochureUrl) {
-          // Delete existing brochure if it exists
           if (existingData.brochureUrl) {
             await deleteFromFirebase(existingData.brochureUrl);
           }
@@ -205,12 +211,14 @@ exports.updateProject = async (req, res) => {
         }
       }
 
-      // Validate updated data
+      // Ensure arrays are properly initialized before validation
       const mergedData = {
         ...existingData,
         ...updatedData,
+        images: Array.isArray(updatedData.images) ? updatedData.images : (Array.isArray(existingData.images) ? existingData.images : []),
+        videos: Array.isArray(updatedData.videos) ? updatedData.videos : (Array.isArray(existingData.videos) ? existingData.videos : [])
       };
-      
+
       const errors = Project.validate(mergedData);
       if (errors.length > 0) {
         // If validation fails, clean up any newly uploaded files
