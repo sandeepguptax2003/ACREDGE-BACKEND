@@ -114,53 +114,53 @@ exports.updateProject = async (req, res) => {
     const updatedData = req.body;
     const files = req.files;
 
-    console.log("Updating project with ID:", id);
-    console.log("Received update data:", updatedData);
-    console.log("Files received:", files);
-
+    // Get existing project
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
     const existingData = projectDoc.data();
 
+    // Handle file updates
     if (files) {
+      // Handle images
       if (files.images) {
-          if (req.body.deleteImages) {
-              try {
-                const deleteImages = JSON.parse(req.body.deleteImages);
-                await deleteMultipleFiles(deleteImages);
-                updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
-              } catch (error) {
-                console.error('Error deleting images:', error);
-                return res.status(400).json({ error: 'Error deleting images. ' + error.message });
-              }
-            }
-
-            try {
-              const newImages = await uploadMultipleFiles(files.images, 'images', id);
-              updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
-            } catch (error) {
-              console.error('Error uploading new images:', error);
-              return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
-            }
+        // Delete existing images if specified
+        if (req.body.deleteImages) {
+          try {
+            const deleteImages = JSON.parse(req.body.deleteImages);
+            await deleteMultipleFiles(deleteImages);
+            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
+          } catch (error) {
+            console.error('Error deleting images:', error);
+            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
           }
+        }
+        // Upload new images
+        try {
+          const newImages = await uploadMultipleFiles(files.images, 'images', id);
+          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
+        } catch (error) {
+          console.error('Error uploading new images:', error);
+          return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
+        }
+      }
 
-          if (files.videos) {
-              // Delete existing videos if specified
-              if (req.body.deleteVideos) {
-                try {
-                  const deleteVideos = JSON.parse(req.body.deleteVideos);
-                  await deleteMultipleFiles(deleteVideos);
-                  updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
-                } catch (error) {
-                  console.error('Error deleting videos:', error);
-                  return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
-                }
-              }
-
+      // Handle videos
+      if (files.videos) {
+        // Delete existing videos if specified
+        if (req.body.deleteVideos) {
+          try {
+            const deleteVideos = JSON.parse(req.body.deleteVideos);
+            await deleteMultipleFiles(deleteVideos);
+            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
+          } catch (error) {
+            console.error('Error deleting videos:', error);
+            return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
+          }
+        }
         // Upload new videos
-      try {
+        try {
           const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
           updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
         } catch (error) {
@@ -169,43 +169,47 @@ exports.updateProject = async (req, res) => {
         }
       }
 
+      // Handle brochure
       if (files.brochureUrl) {
-          try {
-            // Delete existing brochure if it exists
-            if (existingData.brochureUrl) {
-              await deleteFromFirebase(existingData.brochureUrl);
-            }
-            const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
-            updatedData.brochureUrl = brochureUrl;
-          } catch (error) {
-            console.error('Error handling brochure:', error);
-            return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
+        try {
+          // Delete existing brochure if it exists
+          if (existingData.brochureUrl) {
+            await deleteFromFirebase(existingData.brochureUrl);
           }
+          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+          updatedData.brochureUrl = brochureUrl;
+        } catch (error) {
+          console.error('Error handling brochure:', error);
+          return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
         }
+      }
     }
 
+    // Validate updated data
     const errors = Project.validate({ ...existingData, ...updatedData });
-    console.log("Validation errors:", errors);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
+    // Add metadata
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
+    // Update project
     const project = new Project({ ...existingData, ...updatedData });
-  await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
-
-    console.log("Final data to update:", updatedData);
-    await db.collection(Project.collectionName).doc(id).update(updatedData);
-
-    console.log("Project updated successfully with ID:", id);
-    res.status(200).json({ id, ...updatedData });
+    await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+    
+    res.status(200).json({
+      message: 'Project updated successfully',
+      data: project.toFirestore()
+    });
   } catch (error) {
-    console.error('Error updating project:', error);
-    console.error('Stack trace:', error.stack);
+    console.error('Error in Update Project:', error);
     res.status(500).json({ error: error.message });
   }
 };
