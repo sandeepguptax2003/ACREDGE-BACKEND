@@ -29,6 +29,13 @@ const MAX_COUNTS = {
 
 // Function to filter files based on type, size, and count
 const fileFilter = (req, file, cb) => {
+
+  console.log('===== File Filter =====');
+  console.log('Field name:', file.fieldname);
+  console.log('Original name:', file.originalname);
+  console.log('File size:', file.size);
+  console.log('Mime type:', file.mimetype);
+  
   // Define allowed file types for images, videos, and PDFs
   const allowedImageTypes = /jpeg|jpg|png/; // Allowed image types
   const allowedVideoTypes = /mp4|mov/; // Allowed video types

@@ -8,16 +8,17 @@ exports.createProject = async (req, res) => {
     const projectData = req.body;  // Get project data from the request body
     const files = req.files;       // Get uploaded files
 
+    console.log("Starting to create project...");
+    console.log("Received project data:", projectData);
+    console.log("Files received:", files);
+
     // Create a Firestore document to store the project and get its unique ID
     const docRef = await db.collection(Project.collectionName).add({
       createdBy: req.user.email,
       createdOn: new Date(),
     });
+    console.log("Firestore document created with ID:", docRef.id);
 
-    console.log("Received project data:", projectData);
-    console.log("Files received:", files);
-
-    // Upload images if provided, save URLs in projectData
     if (files.images && Array.isArray(files.images)) {
       try {
         console.log("Uploading images...");
@@ -25,12 +26,11 @@ exports.createProject = async (req, res) => {
         console.log("Uploaded images URLs:", projectData.images);
       } catch (error) {
         console.error('Error uploading images:', error);
-        await docRef.delete();  // Delete document if there is an error
+        await docRef.delete();
         return res.status(400).json({ error: 'Error uploading images. ' + error.message });
       }
     }
 
-    // Upload videos if provided, save URLs in projectData
     if (files.videos && Array.isArray(files.videos)) {
       try {
         console.log("Uploading videos...");
@@ -44,7 +44,6 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    // Upload brochure if provided and store its URL
     if (files.brochureUrl) {
       try {
         console.log("Uploading brochure...");
@@ -60,26 +59,23 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    // Validate project data based on model constraints
     const errors = Project.validate(projectData);
     if (errors.length > 0) {
       console.log("Validation errors:", errors);
       await deleteMultipleFiles(projectData.images);
       await deleteMultipleFiles(projectData.videos);
       if (projectData.brochureUrl) await deleteFromFirebase(projectData.brochureUrl);
-      if (projectData.layoutPlanUrl) await deleteFromFirebase(projectData.layoutPlanUrl);
       await docRef.delete();
       return res.status(400).json({ errors });
     }
 
-    // Save final project data in Firestore document
     projectData.createdBy = req.user.email;
     projectData.createdOn = new Date();
 
     const project = new Project(projectData);
     await docRef.update(project.toFirestore());
-
     console.log("Project created successfully with ID:", docRef.id);
+
     res.status(201).json({ id: docRef.id, ...project.toFirestore() });
   } catch (error) {
     console.error('Error in Create Project:', error);
@@ -114,6 +110,11 @@ exports.getProjectById = async (req, res) => {
 // Function to update an existing project with new data and/or files
 exports.updateProject = async (req, res) => {
   try {
+    console.log('===== Update Project Start =====');
+    console.log('Project ID:', req.params.id);
+    console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
+    console.log('Body fields:', Object.keys(req.body));
+
     const { id } = req.params;
     const updatedData = req.body;
     const files = req.files;
@@ -125,19 +126,14 @@ exports.updateProject = async (req, res) => {
     
     const existingData = projectDoc.data();
     
-    // Handle file updates
     if (files || req.body.deleteImages || req.body.deleteVideos) {
-      // Handle image deletion first
       if (req.body.deleteImages) {
         try {
           const deleteImages = JSON.parse(req.body.deleteImages);
-          // Ensure deleteImages is an array
           const imagesToDelete = Array.isArray(deleteImages) ? deleteImages : [deleteImages];
           
-          // Delete files from storage
+          console.log("Deleting images:", imagesToDelete);
           await deleteMultipleFiles(imagesToDelete);
-          
-          // Update the images array by filtering out deleted images
           updatedData.images = (existingData.images || [])
             .filter(url => !imagesToDelete.includes(url));
         } catch (error) {
@@ -145,21 +141,16 @@ exports.updateProject = async (req, res) => {
           return res.status(400).json({ error: 'Error deleting images. ' + error.message });
         }
       } else {
-        // If no images are being deleted, preserve existing images
         updatedData.images = existingData.images || [];
       }
 
-      // Handle video deletion
       if (req.body.deleteVideos) {
         try {
           const deleteVideos = JSON.parse(req.body.deleteVideos);
-          // Ensure deleteVideos is an array
           const videosToDelete = Array.isArray(deleteVideos) ? deleteVideos : [deleteVideos];
           
-          // Delete files from storage
+          console.log("Deleting videos:", videosToDelete);
           await deleteMultipleFiles(videosToDelete);
-          
-          // Update the videos array by filtering out deleted videos
           updatedData.videos = (existingData.videos || [])
             .filter(url => !videosToDelete.includes(url));
         } catch (error) {
@@ -167,16 +158,16 @@ exports.updateProject = async (req, res) => {
           return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
         }
       } else {
-        // If no videos are being deleted, preserve existing videos
         updatedData.videos = existingData.videos || [];
       }
 
-      // Handle new file uploads
       if (files) {
-        // Upload new images if any
+        console.log('Uploading new files if provided...');
         if (files.images) {
+          console.log('Attempting to upload new images...');
           try {
             const newImages = await uploadMultipleFiles(files.images, 'images', id);
+            console.log('Successfully uploaded new images:', newImages);
             updatedData.images = [...(updatedData.images || []), ...newImages];
           } catch (error) {
             console.error('Error uploading new images:', error);
@@ -184,10 +175,11 @@ exports.updateProject = async (req, res) => {
           }
         }
 
-        // Upload new videos if any
         if (files.videos) {
+          console.log('Attempting to upload new videos...');
           try {
             const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
+            console.log('Successfully uploaded new videos:', newVideos);
             updatedData.videos = [...(updatedData.videos || []), ...newVideos];
           } catch (error) {
             console.error('Error uploading new videos:', error);
@@ -195,14 +187,14 @@ exports.updateProject = async (req, res) => {
           }
         }
 
-        // Handle brochure update
         if (files.brochureUrl) {
+          console.log('Attempting to upload new brochure...');
           try {
-            // Delete existing brochure if it exists
             if (existingData.brochureUrl) {
               await deleteFromFirebase(existingData.brochureUrl);
             }
             const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+            console.log('Successfully uploaded new brochure:', brochureUrl);
             updatedData.brochureUrl = brochureUrl;
           } catch (error) {
             console.error('Error handling brochure:', error);
@@ -212,9 +204,9 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    // Rest of your existing validation and update logic
     const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
+      console.log("Validation errors in update:", errors);
       return res.status(400).json({ errors });
     }
 
@@ -225,6 +217,7 @@ exports.updateProject = async (req, res) => {
 
     const project = new Project({ ...existingData, ...updatedData });
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+    console.log("Project updated successfully for ID:", id);
 
     res.status(200).json({
       message: 'Project updated successfully',
@@ -232,6 +225,8 @@ exports.updateProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating project:', error);
+    console.error('Error details:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };

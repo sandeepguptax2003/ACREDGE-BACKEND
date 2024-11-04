@@ -30,9 +30,17 @@ const generateFileName = (file, folder, entityId = '') => {
 
 // Function to upload a single file to Firebase
 const uploadToFirebase = async (file, folder, entityId = '') => {
-  if (!file) return null; // Return null if no file is provided
+
+  console.log('===== Upload To Firebase =====');
+  console.log('Uploading file:', file?.originalname);
+  console.log('To folder:', folder);
+  console.log('Entity ID:', entityId);
+
+  if (!file) return null;
+  console.log('No file provided to uploadToFirebase'); // Return null if no file is provided
   
-  const fileName = generateFileName(file, folder, entityId); // Generate a unique file name
+  const fileName = generateFileName(file, folder, entityId);
+  console.log('Generated filename:', fileName); // Generate a unique file name
   const fileUpload = bucket.file(fileName); // Create a reference to the file in the bucket
 
   // Create a writable stream for uploading the file
@@ -58,9 +66,11 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
 
     // Handle successful upload
     blobStream.on('finish', async () => {
+      console.log('Stream finished for file:', fileName);
       try {
         await fileUpload.makePublic(); // Make the uploaded file publicly accessible
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`; // Construct the public URL
+        console.log('File made public, URL:', publicUrl);
         resolve(publicUrl); // Resolve the promise with the public URL
       } catch (error) {
         console.error('Make public error:', error); // Log any errors when making the file public
@@ -75,9 +85,18 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
 
 // Function to upload multiple files to Firebase
 const uploadMultipleFiles = async (files, folder, entityId = '') => {
+
+
+  console.log('===== Upload Multiple Files =====');
+  console.log('Number of files:', Array.isArray(files) ? files.length : 1);
+  console.log('Folder:', folder);
+  console.log('Entity ID:', entityId);
+
+
   // Check if the provided files is an array; if not, upload the single file
   if (!files || !Array.isArray(files)) {
     if (files) return uploadToFirebase(files, folder, entityId); // Upload single file if provided
+    console.log('No files provided to uploadMultipleFiles');
     return null; // Return null if no files are provided
   }
   

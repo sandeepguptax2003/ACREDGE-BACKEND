@@ -8,31 +8,30 @@ exports.createSeries = async (req, res) => {
     const seriesData = req.body; // Data sent from client about the series
     const files = req.files; // Files uploaded with the request
 
+    // Log series data and files received
+    console.log("Received series data:", seriesData);
+    console.log("Files received:", files);
+
     // Create a new document in the Series collection to get an auto-generated ID
     const docRef = await db.collection(Series.collectionName).add({
       createdBy: req.user.email,
       createdOn: new Date(),
     });
 
-    // Log received data and files for debugging
-    console.log("Received series data:", seriesData);
-    console.log("Files received:", files);
-
-    // Upload multiple images associated with this series, if any
+    // Upload inside images
     if (files.insideImagesUrls && Array.isArray(files.insideImagesUrls)) {
       try {
         console.log("Uploading inside images...");
         seriesData.insideImagesUrls = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', docRef.id);
         console.log("Uploaded inside images URLs:", seriesData.insideImagesUrls);
       } catch (error) {
-        // Handle error by deleting the series document and returning an error message
         console.error('Error uploading inside images:', error);
         await docRef.delete();
         return res.status(400).json({ error: 'Error uploading inside images. ' + error.message });
       }
     }
 
-    // Upload multiple videos, if provided
+    // Upload inside videos
     if (files.insideVideosUrls && Array.isArray(files.insideVideosUrls)) {
       try {
         console.log("Uploading inside videos...");
@@ -40,14 +39,13 @@ exports.createSeries = async (req, res) => {
         console.log("Uploaded inside videos URLs:", seriesData.insideVideosUrls);
       } catch (error) {
         console.error('Error uploading inside videos:', error);
-        // Clean up by deleting any previously uploaded images and the document
         if (seriesData.insideImagesUrls) await deleteMultipleFiles(seriesData.insideImagesUrls);
         await docRef.delete();
         return res.status(400).json({ error: 'Error uploading inside videos. ' + error.message });
       }
     }
 
-    // Upload layout plan if provided
+    // Upload layout plan
     if (files.layoutPlanUrl) {
       try {
         console.log("Uploading layout plan...");
@@ -56,7 +54,6 @@ exports.createSeries = async (req, res) => {
         console.log("Layout plan URL:", layoutPlanUrl);
       } catch (error) {
         console.error('Error uploading layout plan:', error);
-        // Clean up by deleting uploaded files and document in case of error
         if (seriesData.insideImagesUrls) await deleteMultipleFiles(seriesData.insideImagesUrls);
         if (seriesData.insideVideosUrls) await deleteMultipleFiles(seriesData.insideVideosUrls);
         await docRef.delete();
@@ -64,10 +61,10 @@ exports.createSeries = async (req, res) => {
       }
     }
 
-    // Validate series data; if invalid, delete uploaded data and document
+    // Validate data
     const errors = Series.validate(seriesData);
+    console.log("Validation errors:", errors);
     if (errors.length > 0) {
-      console.log("Validation errors:", errors);
       if (seriesData.insideImagesUrls) await deleteMultipleFiles(seriesData.insideImagesUrls);
       if (seriesData.insideVideosUrls) await deleteMultipleFiles(seriesData.insideVideosUrls);
       if (seriesData.layoutPlanUrl) await deleteFromFirebase(seriesData.layoutPlanUrl);
@@ -75,13 +72,6 @@ exports.createSeries = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
-    // Ensure user is authenticated; if not, delete document
-    if (!req.user || !req.user.email) {
-      await docRef.delete();
-      return res.status(401).json({ message: "Authentication required" });
-    }
-
-    // Update series data with creator information and timestamp
     seriesData.createdBy = req.user.email;
     seriesData.createdOn = new Date();
 
@@ -126,11 +116,14 @@ exports.getSeriesById = async (req, res) => {
 // Controller for updating a series
 exports.updateSeries = async (req, res) => {
   try {
-    const { id } = req.params; // ID of the series to update
+    const { id } = req.params;
     const updatedData = req.body;
     const files = req.files;
 
-    // Check if the series document exists
+    console.log("Updating series with ID:", id);
+    console.log("Received update data:", updatedData);
+    console.log("Files received:", files);
+
     const seriesDoc = await db.collection(Series.collectionName).doc(id).get();
     if (!seriesDoc.exists) {
       return res.status(404).json({ message: 'Series not found' });
@@ -138,11 +131,11 @@ exports.updateSeries = async (req, res) => {
     const existingData = seriesDoc.data();
 
     if (files) {
-      // Handle images upload, deletion, and addition if provided
       if (files.insideImagesUrls) {
         if (req.body.deleteInsideImages) {
           try {
             const deleteImages = JSON.parse(req.body.deleteInsideImages);
+            console.log("Deleting inside images:", deleteImages);
             await deleteMultipleFiles(deleteImages);
             updatedData.insideImagesUrls = (existingData.insideImagesUrls || []).filter(url => !deleteImages.includes(url));
           } catch (error) {
@@ -154,17 +147,18 @@ exports.updateSeries = async (req, res) => {
         try {
           const newImages = await uploadMultipleFiles(files.insideImagesUrls, 'insideImagesUrls', id);
           updatedData.insideImagesUrls = [...(updatedData.insideImagesUrls || existingData.insideImagesUrls || []), ...newImages];
+          console.log("New inside images uploaded:", newImages);
         } catch (error) {
           console.error('Error uploading new inside images:', error);
           return res.status(400).json({ error: 'Error uploading new inside images. ' + error.message });
         }
       }
 
-      // Handle videos upload, deletion, and addition if provided
       if (files.insideVideosUrls) {
         if (req.body.deleteInsideVideos) {
           try {
             const deleteVideos = JSON.parse(req.body.deleteInsideVideos);
+            console.log("Deleting inside videos:", deleteVideos);
             await deleteMultipleFiles(deleteVideos);
             updatedData.insideVideosUrls = (existingData.insideVideosUrls || []).filter(url => !deleteVideos.includes(url));
           } catch (error) {
@@ -176,20 +170,22 @@ exports.updateSeries = async (req, res) => {
         try {
           const newVideos = await uploadMultipleFiles(files.insideVideosUrls, 'insideVideosUrls', id);
           updatedData.insideVideosUrls = [...(updatedData.insideVideosUrls || existingData.insideVideosUrls || []), ...newVideos];
+          console.log("New inside videos uploaded:", newVideos);
         } catch (error) {
           console.error('Error uploading new inside videos:', error);
           return res.status(400).json({ error: 'Error uploading new inside videos. ' + error.message });
         }
       }
 
-      // Handle layout plan upload
       if (files.layoutPlanUrl) {
         try {
           if (existingData.layoutPlanUrl) {
+            console.log("Deleting existing layout plan URL:", existingData.layoutPlanUrl);
             await deleteFromFirebase(existingData.layoutPlanUrl);
           }
           const [layoutPlanUrl] = await uploadMultipleFiles(files.layoutPlanUrl, 'layoutPlanUrl', id);
           updatedData.layoutPlanUrl = layoutPlanUrl;
+          console.log("New layout plan URL uploaded:", layoutPlanUrl);
         } catch (error) {
           console.error('Error handling layout plan:', error);
           return res.status(400).json({ error: 'Error handling layout plan. ' + error.message });
@@ -197,15 +193,10 @@ exports.updateSeries = async (req, res) => {
       }
     }
 
-    // Validate updated data before saving
     const errors = Series.validate({ ...existingData, ...updatedData });
+    console.log("Validation errors:", errors);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
-    }
-
-    // Ensure user authentication before updating
-    if (!req.user || !req.user.email) {
-      return res.status(401).json({ message: "Authentication required" });
     }
 
     updatedData.createdBy = existingData.createdBy;
@@ -213,12 +204,14 @@ exports.updateSeries = async (req, res) => {
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    // Update document with the new data
+    console.log("Final data to update:", updatedData);
     await db.collection(Series.collectionName).doc(id).update(updatedData);
 
+    console.log("Series updated successfully with ID:", id);
     res.status(200).json({ id, ...updatedData });
   } catch (error) {
     console.error('Error updating series:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
