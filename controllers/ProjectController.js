@@ -117,83 +117,112 @@ exports.updateProject = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
     const files = req.files;
-
-    // Retrieve existing project data to preserve non-updated fields
+    
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Project not found' });
     }
+    
     const existingData = projectDoc.data();
-
-    // Handle file updates and deletions as specified in request
-    if (files) {
-      if (files.images) {
-        if (req.body.deleteImages) {
-          try {
-            const deleteImages = JSON.parse(req.body.deleteImages);
-            await deleteMultipleFiles(deleteImages);
-            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
-          } catch (error) {
-            console.error('Error deleting images:', error);
-            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
-          }
-        }
+    
+    // Handle file updates
+    if (files || req.body.deleteImages || req.body.deleteVideos) {
+      // Handle image deletion first
+      if (req.body.deleteImages) {
         try {
-          const newImages = await uploadMultipleFiles(files.images, 'images', id);
-          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
+          const deleteImages = JSON.parse(req.body.deleteImages);
+          // Ensure deleteImages is an array
+          const imagesToDelete = Array.isArray(deleteImages) ? deleteImages : [deleteImages];
+          
+          // Delete files from storage
+          await deleteMultipleFiles(imagesToDelete);
+          
+          // Update the images array by filtering out deleted images
+          updatedData.images = (existingData.images || [])
+            .filter(url => !imagesToDelete.includes(url));
         } catch (error) {
-          console.error('Error uploading new images:', error);
-          return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
+          console.error('Error deleting images:', error);
+          return res.status(400).json({ error: 'Error deleting images. ' + error.message });
         }
+      } else {
+        // If no images are being deleted, preserve existing images
+        updatedData.images = existingData.images || [];
       }
 
-      if (files.videos) {
-        if (req.body.deleteVideos) {
-          try {
-            const deleteVideos = JSON.parse(req.body.deleteVideos);
-            await deleteMultipleFiles(deleteVideos);
-            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
-          } catch (error) {
-            console.error('Error deleting videos:', error);
-            return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
-          }
-        }
+      // Handle video deletion
+      if (req.body.deleteVideos) {
         try {
-          const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
-          updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
+          const deleteVideos = JSON.parse(req.body.deleteVideos);
+          // Ensure deleteVideos is an array
+          const videosToDelete = Array.isArray(deleteVideos) ? deleteVideos : [deleteVideos];
+          
+          // Delete files from storage
+          await deleteMultipleFiles(videosToDelete);
+          
+          // Update the videos array by filtering out deleted videos
+          updatedData.videos = (existingData.videos || [])
+            .filter(url => !videosToDelete.includes(url));
         } catch (error) {
-          console.error('Error uploading new videos:', error);
-          return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
+          console.error('Error deleting videos:', error);
+          return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
         }
+      } else {
+        // If no videos are being deleted, preserve existing videos
+        updatedData.videos = existingData.videos || [];
       }
 
-      if (files.brochureUrl) {
-        try {
-          if (existingData.brochureUrl) {
-            await deleteFromFirebase(existingData.brochureUrl);
+      // Handle new file uploads
+      if (files) {
+        // Upload new images if any
+        if (files.images) {
+          try {
+            const newImages = await uploadMultipleFiles(files.images, 'images', id);
+            updatedData.images = [...(updatedData.images || []), ...newImages];
+          } catch (error) {
+            console.error('Error uploading new images:', error);
+            return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
           }
-          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
-          updatedData.brochureUrl = brochureUrl;
-        } catch (error) {
-          console.error('Error handling brochure:', error);
-          return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
+        }
+
+        // Upload new videos if any
+        if (files.videos) {
+          try {
+            const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
+            updatedData.videos = [...(updatedData.videos || []), ...newVideos];
+          } catch (error) {
+            console.error('Error uploading new videos:', error);
+            return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
+          }
+        }
+
+        // Handle brochure update
+        if (files.brochureUrl) {
+          try {
+            // Delete existing brochure if it exists
+            if (existingData.brochureUrl) {
+              await deleteFromFirebase(existingData.brochureUrl);
+            }
+            const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+            updatedData.brochureUrl = brochureUrl;
+          } catch (error) {
+            console.error('Error handling brochure:', error);
+            return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
+          }
         }
       }
     }
 
-    // Validate the updated project data
+    // Rest of your existing validation and update logic
     const errors = Project.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
-    // Preserve createdBy and createdOn fields; update metadata fields
     updatedData.createdBy = existingData.createdBy;
     updatedData.createdOn = existingData.createdOn;
     updatedData.updatedBy = req.user.email;
     updatedData.updatedOn = new Date();
 
-    // Update the Firestore document with merged project data
     const project = new Project({ ...existingData, ...updatedData });
     await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
 
