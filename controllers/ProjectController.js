@@ -108,11 +108,12 @@ exports.getProjectById = async (req, res) => {
 };
 
 // Function to update an existing project with new data and/or files
+// Function to update an existing project with new data and/or files
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedData = req.body;
-    const files = req.files;
+    const updatedData = { ...req.body }; // Create a copy to avoid modifying req.body directly
+    const files = req.files || {};
 
     // Get existing project
     const projectDoc = await db.collection(Project.collectionName).doc(id).get();
@@ -121,96 +122,140 @@ exports.updateProject = async (req, res) => {
     }
     const existingData = projectDoc.data();
 
-    // Handle file updates
-    if (files) {
-      // Handle images
-      if (files.images) {
-        // Delete existing images if specified
-        if (req.body.deleteImages) {
-          try {
-            const deleteImages = JSON.parse(req.body.deleteImages);
-            await deleteMultipleFiles(deleteImages);
-            updatedData.images = (existingData.images || []).filter(url => !deleteImages.includes(url));
-          } catch (error) {
-            console.error('Error deleting images:', error);
-            return res.status(400).json({ error: 'Error deleting images. ' + error.message });
-          }
-        }
-        // Upload new images
-        try {
-          const newImages = await uploadMultipleFiles(files.images, 'images', id);
-          updatedData.images = [...(updatedData.images || existingData.images || []), ...newImages];
-        } catch (error) {
-          console.error('Error uploading new images:', error);
-          return res.status(400).json({ error: 'Error uploading new images. ' + error.message });
-        }
-      }
+    // Initialize arrays for tracking successful uploads
+    let newlyUploadedFiles = [];
 
-      // Handle videos
-      if (files.videos) {
-        // Delete existing videos if specified
-        if (req.body.deleteVideos) {
-          try {
-            const deleteVideos = JSON.parse(req.body.deleteVideos);
-            await deleteMultipleFiles(deleteVideos);
-            updatedData.videos = (existingData.videos || []).filter(url => !deleteVideos.includes(url));
-          } catch (error) {
-            console.error('Error deleting videos:', error);
-            return res.status(400).json({ error: 'Error deleting videos. ' + error.message });
+    try {
+      // Handle file updates
+      if (Object.keys(files).length > 0) {
+        // Handle images
+        if (files.images) {
+          // Handle image deletions first
+          if (updatedData.deleteImages) {
+            const deleteImages = Array.isArray(updatedData.deleteImages) 
+              ? updatedData.deleteImages 
+              : JSON.parse(updatedData.deleteImages);
+            
+            if (deleteImages && deleteImages.length > 0) {
+              await deleteMultipleFiles(deleteImages);
+              updatedData.images = (existingData.images || [])
+                .filter(url => !deleteImages.includes(url));
+            }
+            // Remove deleteImages from updatedData as it's not part of the model
+            delete updatedData.deleteImages;
+          } else {
+            // If no deletions, maintain existing images
+            updatedData.images = existingData.images || [];
           }
-        }
-        // Upload new videos
-        try {
-          const newVideos = await uploadMultipleFiles(files.videos, 'videos', id);
-          updatedData.videos = [...(updatedData.videos || existingData.videos || []), ...newVideos];
-        } catch (error) {
-          console.error('Error uploading new videos:', error);
-          return res.status(400).json({ error: 'Error uploading new videos. ' + error.message });
-        }
-      }
 
-      // Handle brochure
-      if (files.brochureUrl) {
-        try {
+          // Upload new images
+          const newImages = await uploadMultipleFiles(
+            Array.isArray(files.images) ? files.images : [files.images],
+            'images',
+            id
+          );
+          newlyUploadedFiles = [...newlyUploadedFiles, ...newImages];
+          updatedData.images = [...(updatedData.images || []), ...newImages];
+        }
+
+        // Handle videos
+        if (files.videos) {
+          // Handle video deletions first
+          if (updatedData.deleteVideos) {
+            const deleteVideos = Array.isArray(updatedData.deleteVideos)
+              ? updatedData.deleteVideos
+              : JSON.parse(updatedData.deleteVideos);
+            
+            if (deleteVideos && deleteVideos.length > 0) {
+              await deleteMultipleFiles(deleteVideos);
+              updatedData.videos = (existingData.videos || [])
+                .filter(url => !deleteVideos.includes(url));
+            }
+            // Remove deleteVideos from updatedData as it's not part of the model
+            delete updatedData.deleteVideos;
+          } else {
+            // If no deletions, maintain existing videos
+            updatedData.videos = existingData.videos || [];
+          }
+
+          // Upload new videos
+          const newVideos = await uploadMultipleFiles(
+            Array.isArray(files.videos) ? files.videos : [files.videos],
+            'videos',
+            id
+          );
+          newlyUploadedFiles = [...newlyUploadedFiles, ...newVideos];
+          updatedData.videos = [...(updatedData.videos || []), ...newVideos];
+        }
+
+        // Handle brochure
+        if (files.brochureUrl) {
           // Delete existing brochure if it exists
           if (existingData.brochureUrl) {
             await deleteFromFirebase(existingData.brochureUrl);
           }
-          const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', id);
+          
+          const [brochureUrl] = await uploadMultipleFiles(
+            Array.isArray(files.brochureUrl) ? files.brochureUrl : [files.brochureUrl],
+            'brochureUrl',
+            id
+          );
+          newlyUploadedFiles.push(brochureUrl);
           updatedData.brochureUrl = brochureUrl;
-        } catch (error) {
-          console.error('Error handling brochure:', error);
-          return res.status(400).json({ error: 'Error handling brochure. ' + error.message });
         }
       }
-    }
 
-    // Validate updated data
-    const errors = Project.validate({ ...existingData, ...updatedData });
-    if (errors.length > 0) {
-      return res.status(400).json({ errors });
-    }
+      // Validate updated data
+      const mergedData = {
+        ...existingData,
+        ...updatedData,
+      };
+      
+      const errors = Project.validate(mergedData);
+      if (errors.length > 0) {
+        // If validation fails, clean up any newly uploaded files
+        if (newlyUploadedFiles.length > 0) {
+          await deleteMultipleFiles(newlyUploadedFiles);
+        }
+        return res.status(400).json({ errors });
+      }
 
-    // Add metadata
-    if (!req.user || !req.user.email) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    updatedData.createdBy = existingData.createdBy;
-    updatedData.createdOn = existingData.createdOn;
-    updatedData.updatedBy = req.user.email;
-    updatedData.updatedOn = new Date();
+      // Add metadata
+      if (!req.user?.email) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const finalData = {
+        ...mergedData,
+        createdBy: existingData.createdBy,
+        createdOn: existingData.createdOn,
+        updatedBy: req.user.email,
+        updatedOn: new Date(),
+      };
 
-    // Update project
-    const project = new Project({ ...existingData, ...updatedData });
-    await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+      // Create Project instance and update in Firestore
+      const project = new Project(finalData);
+      await db.collection(Project.collectionName).doc(id).update(project.toFirestore());
+
+      res.status(200).json({
+        message: 'Project updated successfully',
+        data: project.toFirestore()
+      });
+      
+    } catch (error) {
+      // If any error occurs during file handling, clean up newly uploaded files
+      if (newlyUploadedFiles.length > 0) {
+        await deleteMultipleFiles(newlyUploadedFiles);
+      }
+      throw error; // Re-throw to be caught by outer try-catch
+    }
     
-    res.status(200).json({
-      message: 'Project updated successfully',
-      data: project.toFirestore()
-    });
   } catch (error) {
     console.error('Error in Update Project:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'Failed to update project',
+      details: error.message 
+    });
   }
 };
 
