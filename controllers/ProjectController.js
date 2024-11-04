@@ -279,6 +279,27 @@ async function cleanupFiles(filesToDelete) {
   }
 }
 
+async function cleanupFiles(filesToDelete) {
+  try {
+    // Delete images
+    if (Array.isArray(filesToDelete.images) && filesToDelete.images.length > 0) {
+      await deleteMultipleFiles(filesToDelete.images);
+    }
+
+    // Delete videos
+    if (Array.isArray(filesToDelete.videos) && filesToDelete.videos.length > 0) {
+      await deleteMultipleFiles(filesToDelete.videos);
+    }
+
+    // Delete brochure
+    if (filesToDelete.brochure) {
+      await deleteFromFirebase(filesToDelete.brochure);
+    }
+  } catch (error) {
+    console.error('Error cleaning up files:', error);
+  }
+}
+
 // Function to delete a project and its associated files from Firestore
 exports.deleteProject = async (req, res) => {
   try {
