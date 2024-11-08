@@ -9,11 +9,9 @@ class Developer {
     this.incorporationDate = data.incorporationDate; // Date of incorporation
     this.totalProjectsDelivered = parseInt(data.totalProjectsDelivered, 10); // Total projects delivered, converted to integer
     this.totalSqFtDelivered = parseInt(data.totalSqFtDelivered, 10); // Total square footage delivered, converted to integer
-    this.landlineNumber = {
-      number: data.landlineNumber?.number || '', // The main landline number
-      countryCode: data.landlineNumber?.countryCode || '', // Optional country code from dropdown
-      stateCode: data.landlineNumber?.stateCode || ''     // Optional state code from dropdown
-    };
+    this.countryCode = parseInt(data.countryCode, 10);
+    this.stateCode = data.stateCode;
+    this.landlineNumber = parseInt(data.landlineNumber, 10);
     this.description = data.description; // Description of the developer
     this.websiteLink = data.websiteLink; // Website link for the developer
     this.logoUrl = data.logoUrl; // Logo URL
@@ -44,24 +42,10 @@ class Developer {
     
     // Parse and validate total projects and square footage delivered
     const totalProjects = parseInt(data.totalProjectsDelivered, 10);
-    const totalSqFt = parseInt(data.totalSqFtDelivered, 10); 
+    const totalSqFt = parseInt(data.totalSqFtDelivered, 10);
 
     if (isNaN(totalProjects)) errors.push('Total projects delivered must be an integer');  
     if (isNaN(totalSqFt)) errors.push('Total sq ft delivered must be an integer');
-    
-    // Validate landline number
-    if (!data.landlineNumber || !data.landlineNumber.number || !/^\d+$/.test(data.landlineNumber.number)) {
-      errors.push('Valid landline number is required (digits only)');
-    }
-    
-    // Note: country code and state code are optional, but if provided should be valid
-    if (data.landlineNumber?.countryCode && !/^\d+$/.test(data.landlineNumber.countryCode)) {
-      errors.push('Country code must contain only digits');
-    }
-    
-    if (data.landlineNumber?.stateCode && !/^\d+$/.test(data.landlineNumber.stateCode)) {
-      errors.push('State code must contain only digits');
-    }
     
     // Validate description length
     if (!data.description || data.description.length < 50) 
@@ -104,17 +88,6 @@ class Developer {
     return Math.abs(ageDate.getUTCFullYear() - 1970); // Calculate age in years
   }
 
-  // Method to get the full formatted landline number
-  getFormattedLandlineNumber() {
-    const { countryCode, stateCode, number } = this.landlineNumber;
-    const codes = [
-      countryCode ? `+${countryCode}` : '',
-      stateCode ? `(${stateCode})` : ''
-    ].filter(Boolean).join(' ');
-    
-    return codes ? `${codes} ${number}` : number;
-  }
-
   // Method to prepare the developer data for Firestore
   toFirestore() {
     return {
@@ -123,6 +96,8 @@ class Developer {
       incorporationDate: this.incorporationDate,
       totalProjectsDelivered: this.totalProjectsDelivered,
       totalSqFtDelivered: this.totalSqFtDelivered,
+      countryCode: this.countryCode,
+      stateCode: this.stateCode,
       landlineNumber: this.landlineNumber,
       description: this.description,
       websiteLink: this.websiteLink,
