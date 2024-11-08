@@ -8,22 +8,22 @@ exports.createProject = async (req, res) => {
     const projectData = req.body;  // Get project data from the request body
     const files = req.files;       // Get uploaded files
 
-    console.log("Starting to create project...");
-    console.log("Received project data:", projectData);
-    console.log("Files received:", files);
+    // console.log("Starting to create project...");
+    // console.log("Received project data:", projectData);
+    // console.log("Files received:", files);
 
     // Create a Firestore document to store the project and get its unique ID
     const docRef = await db.collection(Project.collectionName).add({
       createdBy: req.user.email,
       createdOn: new Date(),
     });
-    console.log("Firestore document created with ID:", docRef.id);
+    // console.log("Firestore document created with ID:", docRef.id);
 
     if (files.images && Array.isArray(files.images)) {
       try {
-        console.log("Uploading images...");
+        // console.log("Uploading images...");
         projectData.images = await uploadMultipleFiles(files.images, 'images', docRef.id);
-        console.log("Uploaded images URLs:", projectData.images);
+        // console.log("Uploaded images URLs:", projectData.images);
       } catch (error) {
         console.error('Error uploading images:', error);
         await docRef.delete();
@@ -33,9 +33,9 @@ exports.createProject = async (req, res) => {
 
     if (files.videos && Array.isArray(files.videos)) {
       try {
-        console.log("Uploading videos...");
+        // console.log("Uploading videos...");
         projectData.videos = await uploadMultipleFiles(files.videos, 'videos', docRef.id);
-        console.log("Uploaded videos URLs:", projectData.videos);
+        // console.log("Uploaded videos URLs:", projectData.videos);
       } catch (error) {
         console.error('Error uploading videos:', error);
         if (projectData.images) await deleteMultipleFiles(projectData.images);
@@ -46,10 +46,10 @@ exports.createProject = async (req, res) => {
 
     if (files.brochureUrl) {
       try {
-        console.log("Uploading brochure...");
+        // console.log("Uploading brochure...");
         const [brochureUrl] = await uploadMultipleFiles(files.brochureUrl, 'brochureUrl', docRef.id);
         projectData.brochureUrl = brochureUrl;
-        console.log("Brochure URL:", brochureUrl);
+        // console.log("Brochure URL:", brochureUrl);
       } catch (error) {
         console.error('Error uploading brochure:', error);
         if (projectData.images) await deleteMultipleFiles(projectData.images);
@@ -61,7 +61,7 @@ exports.createProject = async (req, res) => {
 
     const errors = Project.validate(projectData);
     if (errors.length > 0) {
-      console.log("Validation errors:", errors);
+      // console.log("Validation errors:", errors);
       await deleteMultipleFiles(projectData.images);
       await deleteMultipleFiles(projectData.videos);
       if (projectData.brochureUrl) await deleteFromFirebase(projectData.brochureUrl);
@@ -74,7 +74,7 @@ exports.createProject = async (req, res) => {
 
     const project = new Project(projectData);
     await docRef.update(project.toFirestore());
-    console.log("Project created successfully with ID:", docRef.id);
+    // console.log("Project created successfully with ID:", docRef.id);
 
     res.status(201).json({ id: docRef.id, ...project.toFirestore() });
   } catch (error) {

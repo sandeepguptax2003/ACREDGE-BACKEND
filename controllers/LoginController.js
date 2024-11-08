@@ -38,7 +38,7 @@ const sendEmail = async (to, otp) => {
     html: `<b>Your OTP is: ${otp}</b>`
   });
 
-  console.log("Message sent: %s", info.messageId);
+  // console.log("Message sent: %s", info.messageId);
 };
 
 // Handle email verification and OTP sending

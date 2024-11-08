@@ -6,26 +6,26 @@ const { uploadMultipleFiles, deleteFromFirebase } = require('../utils/FilesUploa
 // Function to create a new developer in the database
 exports.createDeveloper = async (req, res) => {
   try {
-    console.log('Received request to create developer with data:', req.body);
+    // console.log('Received request to create developer with data:', req.body);
     const developerData = req.body;
     const files = req.files;
-    console.log('Files received:', files);
+    // console.log('Files received:', files);
 
     const docRef = await db.collection(Developer.collectionName).add({
       createdBy: req.user.email,
       createdOn: new Date(),
     });
-    console.log('Created document with ID:', docRef.id);
+    // console.log('Created document with ID:', docRef.id);
 
     if (files && files.logoUrl) {
       const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', docRef.id);
       developerData.logoUrl = logoUrl;
-      console.log('Uploaded logo URL:', logoUrl);
+      // console.log('Uploaded logo URL:', logoUrl);
     }
 
     const errors = Developer.validate(developerData);
     if (errors.length > 0) {
-      console.log('Validation errors:', errors);
+      // console.log('Validation errors:', errors);
       if (developerData.logoUrl) {
         await deleteFromFirebase(developerData.logoUrl);
       }
@@ -34,7 +34,7 @@ exports.createDeveloper = async (req, res) => {
     }
 
     if (!req.user || !req.user.email) {
-      console.log('User not authenticated');
+      // console.log('User not authenticated');
       await docRef.delete();
       return res.status(401).json({ message: "Authentication required" });
     }
@@ -46,7 +46,7 @@ exports.createDeveloper = async (req, res) => {
 
     const developer = new Developer(developerData);
     await docRef.update(developer.toFirestore());
-    console.log('Developer created successfully with data:', developer.toFirestore());
+    // console.log('Developer created successfully with data:', developer.toFirestore());
 
     res.status(201).json({
       id: docRef.id,
@@ -86,31 +86,31 @@ exports.getDeveloperById = async (req, res) => {
 exports.updateDeveloper = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Updating developer with ID:', id);
+    // console.log('Updating developer with ID:', id);
     const updatedData = req.body;
     const files = req.files;
-    console.log('Update data received:', updatedData);
-    console.log('Files received for update:', files);
+    // console.log('Update data received:', updatedData);
+    // console.log('Files received for update:', files);
 
     const developerDoc = await db.collection(Developer.collectionName).doc(id).get();
     if (!developerDoc.exists) {
-      console.log('Developer not found for ID:', id);
+      // console.log('Developer not found for ID:', id);
       return res.status(404).json({ message: 'Developer not found' });
     }
 
     const existingData = developerDoc.data();
-    console.log('Existing developer data:', existingData);
+    // console.log('Existing developer data:', existingData);
 
     if (files && files.logoUrl) {
       try {
         const [logoUrl] = await uploadMultipleFiles(files.logoUrl, 'logoUrl', id);
         updatedData.logoUrl = logoUrl;
-        console.log('Uploaded new logo URL:', logoUrl);
+        // console.log('Uploaded new logo URL:', logoUrl);
 
         if (existingData.logoUrl && typeof existingData.logoUrl === 'string' && existingData.logoUrl.trim() !== '') {
           try {
             await deleteFromFirebase(existingData.logoUrl);
-            console.log('Successfully deleted old logo:', existingData.logoUrl);
+            // console.log('Successfully deleted old logo:', existingData.logoUrl);
           } catch (deleteError) {
             console.error("Error deleting old logo:", deleteError);
           }
@@ -123,7 +123,7 @@ exports.updateDeveloper = async (req, res) => {
 
     const errors = Developer.validate({ ...existingData, ...updatedData });
     if (errors.length > 0) {
-      console.log('Validation errors for update:', errors);
+      // console.log('Validation errors for update:', errors);
       if (updatedData.logoUrl) {
         try {
           await deleteFromFirebase(updatedData.logoUrl);
@@ -135,7 +135,7 @@ exports.updateDeveloper = async (req, res) => {
     }
 
     if (!req.user || !req.user.email) {
-      console.log('User not authenticated');
+      // console.log('User not authenticated');
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -146,7 +146,7 @@ exports.updateDeveloper = async (req, res) => {
 
     const developer = new Developer({ ...existingData, ...updatedData });
     await db.collection(Developer.collectionName).doc(id).update(developer.toFirestore());
-    console.log('Developer updated successfully with data:', developer.toFirestore());
+    // console.log('Developer updated successfully with data:', developer.toFirestore());
 
     res.status(200).json({
       message: 'Developer updated successfully',
