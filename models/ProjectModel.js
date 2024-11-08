@@ -15,7 +15,6 @@ class Project {
     this.reraStatus = data.reraStatus; // RERA (Real Estate Regulatory Authority) status of the project.
     this.reraNumber = data.reraNumber; // RERA registration number, required if the project is approved.
     this.reraCompletionDate = data.reraCompletionDate; // Date when the RERA approval process was completed.
-    this.projectLaunchDate = data.projectLaunchDate; // Date when the project was launched.
     this.projectStatus = data.projectStatus; // Current status of the project (e.g., Delivered or Under Construction).
     this.status = data.status; // Current status of the project (e.g., Active or Disabled).
     this.pinCode = parseInt(data.pinCode, 10); // The postal code of the project's location.
@@ -98,7 +97,6 @@ class Project {
     if (!['Rera Applied', 'Rera Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Rera Applied or Rera Approved');
     if (data.reraStatus === 'Rera Approved' && !data.reraNumber) errors.push('RERA number is required for approved projects');
     if (!data.reraCompletionDate || isNaN(new Date(data.reraCompletionDate).getTime())) errors.push('Valid RERA completion date is required');
-    if (!data.projectLaunchDate || isNaN(new Date(data.projectLaunchDate).getTime())) errors.push('Valid project launch date is required');
     if (!['Delivered', 'Under Construction'].includes(data.projectStatus)) errors.push('Project status must be either Delivered or Under Construction');
     
     // Validating RERA status and required fields based on status.
@@ -154,7 +152,6 @@ class Project {
       reraStatus: this.reraStatus,
       reraNumber: this.reraNumber,
       reraCompletionDate: this.reraCompletionDate,
-      projectLaunchDate: this.projectLaunchDate,
       projectStatus: this.projectStatus,
       status: this.status,
       pinCode: this.pinCode,
