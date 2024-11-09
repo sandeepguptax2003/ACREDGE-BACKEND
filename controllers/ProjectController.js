@@ -59,6 +59,21 @@ exports.createProject = async (req, res) => {
       }
     }
 
+    if (files.reraCertificateUrl) {
+      try {
+        // console.log("Uploading brochure...");
+        const [reraCertificateUrl] = await uploadMultipleFiles(files.reraCertificateUrl, 'reraCertificateUrl', docRef.id);
+        projectData.reraCertificateUrl = reraCertificateUrl;
+        // console.log("Brochure URL:", brochureUrl);
+      } catch (error) {
+        console.error('Error uploading reraCertificate:', error);
+        if (projectData.images) await deleteMultipleFiles(projectData.images);
+        if (projectData.videos) await deleteMultipleFiles(projectData.videos);
+        await docRef.delete();
+        return res.status(400).json({ error: 'Error uploading reraCertificate. ' + error.message });
+      }
+    }
+
     const errors = Project.validate(projectData);
     if (errors.length > 0) {
       // console.log("Validation errors:", errors);
@@ -130,6 +145,7 @@ exports.updateProject = async (req, res) => {
       images: [],
       videos: [],
       brochure: existingData.brochureUrl || null,
+      reraCertificateUrl : existingData.reraCertificateUrl || null,
     };
 
     // Handle file updates
@@ -205,6 +221,23 @@ exports.updateProject = async (req, res) => {
         // If no new brochure, maintain existing one
         updatedData.brochureUrl = existingData.brochureUrl || null;
       }
+
+      // Handle brochure
+    if (files.reraCertificateUrl) {
+      if (existingData.reraCertificateUrl) {
+        filesToDelete.reraCertificateUrl = existingData.reraCertificateUrl;
+      }
+      const [reraCertificateUrl] = await uploadMultipleFiles(
+        Array.isArray(files.reraCertificateUrl) ? files.reraCertificateUrl : [files.reraCertificateUrl],
+        'reraCertificateUrl',
+        id
+      );
+      updatedData.reraCertificateUrl = reraCertificateUrl;
+    } else {
+      // If no new brochure, maintain existing one
+      updatedData.reraCertificateUrl = existingData.reraCertificateUrl || null;
+    }
+    
     } catch (error) {
       console.error('Error handling files:', error);
       return res.status(400).json({ error: 'Error handling files. ' + error.message });
@@ -274,26 +307,10 @@ async function cleanupFiles(filesToDelete) {
     if (filesToDelete.brochure) {
       await deleteFromFirebase(filesToDelete.brochure);
     }
-  } catch (error) {
-    console.error('Error cleaning up files:', error);
-  }
-}
 
-async function cleanupFiles(filesToDelete) {
-  try {
-    // Delete images
-    if (Array.isArray(filesToDelete.images) && filesToDelete.images.length > 0) {
-      await deleteMultipleFiles(filesToDelete.images);
-    }
-
-    // Delete videos
-    if (Array.isArray(filesToDelete.videos) && filesToDelete.videos.length > 0) {
-      await deleteMultipleFiles(filesToDelete.videos);
-    }
-
-    // Delete brochure
-    if (filesToDelete.brochure) {
-      await deleteFromFirebase(filesToDelete.brochure);
+    // Delete reraCertificateUrl
+    if (filesToDelete.reraCertificateUrl) {
+      await deleteFromFirebase(filesToDelete.reraCertificateUrl);
     }
   } catch (error) {
     console.error('Error cleaning up files:', error);
@@ -321,6 +338,9 @@ exports.deleteProject = async (req, res) => {
     }
     if (projectData.brochureUrl) {
       await deleteFromFirebase(projectData.brochureUrl);
+    }
+    if (projectData.reraCertificateUrl) {
+      await deleteFromFirebase(projectData.reraCertificateUrl);
     }
 
     // Finally, delete the project document

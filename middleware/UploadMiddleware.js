@@ -11,6 +11,7 @@ const FILE_LIMITS = {
   images: 10 * 1024 * 1024, // Maximum size for images is 10MB
   videos: 50 * 1024 * 1024, // Maximum size for videos is 50MB
   brochureUrl: 50 * 1024 * 1024, // Maximum size for brochure is 50MB
+  reraCertificateUrl: 50 * 1024 * 1024, // Maximum size for RERA certificate is 50MB
   layoutPlanUrl: 50 * 1024 * 1024, // Maximum size for layout plan is 50MB
   insideImagesUrls: 10 * 1024 * 1024, // Maximum size for inside images is 10MB
   insideVideosUrls: 50 * 1024 * 1024 // Maximum size for inside videos is 50MB
@@ -22,6 +23,7 @@ const MAX_COUNTS = {
   images: 20, // Maximum 20 images can be uploaded
   videos: 5, // Maximum 5 videos can be uploaded
   brochureUrl: 1, // Only 1 brochure is allowed
+  reraCertificateUrl: 1, // Only 1 RERA certificate is allowed
   layoutPlanUrl: 1, // Only 1 layout plan is allowed
   insideImagesUrls: 20, // Maximum 20 inside images
   insideVideosUrls: 5 // Maximum 5 inside videos
@@ -30,11 +32,11 @@ const MAX_COUNTS = {
 // Function to filter files based on type, size, and count
 const fileFilter = (req, file, cb) => {
 
-  console.log('===== File Filter =====');
-  console.log('Field name:', file.fieldname);
-  console.log('Original name:', file.originalname);
-  console.log('File size:', file.size);
-  console.log('Mime type:', file.mimetype);
+  // console.log('===== File Filter =====');
+  // console.log('Field name:', file.fieldname);
+  // console.log('Original name:', file.originalname);
+  // console.log('File size:', file.size);
+  // console.log('Mime type:', file.mimetype);
   
   // Define allowed file types for images, videos, and PDFs
   const allowedImageTypes = /jpeg|jpg|png/; // Allowed image types
@@ -42,11 +44,11 @@ const fileFilter = (req, file, cb) => {
   const allowedPdfTypes = /pdf/; // Allowed PDF types
   const ext = path.extname(file.originalname).toLowerCase().substring(1); // Get the file extension
 
-  console.log("Filtering file:", file.originalname, "Type:", ext, "Size:", file.size); // Log file details for debugging
+  // console.log("Filtering file:", file.originalname, "Type:", ext, "Size:", file.size); // Log file details for debugging
 
   // Check if the field name in the request matches the defined limits
   if (!Object.keys(FILE_LIMITS).includes(file.fieldname)) {
-    console.error(`Invalid field name: ${file.fieldname}`); // Log error for invalid field names
+    // console.error(`Invalid field name: ${file.fieldname}`); // Log error for invalid field names
     return cb(new Error(`Invalid field name: ${file.fieldname}`), false); // Return error callback
   }
 
@@ -75,6 +77,7 @@ const fileFilter = (req, file, cb) => {
 
       case 'brochureUrl':
       case 'layoutPlanUrl':
+        case 'reraCertificateUrl':
         if (!allowedPdfTypes.test(ext)) { // Validate PDF formats
           throw new Error('File must be PDF format');
         }
@@ -92,8 +95,9 @@ const fileFilter = (req, file, cb) => {
 
     // Check for maximum file count for fields that allow multiple uploads
     if (file.fieldname !== 'logoUrl' && 
-        file.fieldname !== 'brochureUrl' && 
-        file.fieldname !== 'layoutPlanUrl') {
+        file.fieldname !== 'brochureUrl' &&
+        file.fieldname !== 'layoutPlanUrl' &&  
+        file.fieldname !== 'reraCertificateUrl') {
       const existingFiles = req.files ? req.files[file.fieldname] : []; // Retrieve existing files if any
       if (existingFiles && existingFiles.length >= MAX_COUNTS[file.fieldname]) {
         throw new Error(`Maximum number of files reached for ${file.fieldname}`); // Error if max count is reached
@@ -112,6 +116,7 @@ const uploadFields = [
   { name: 'images', maxCount: MAX_COUNTS.images }, // Define images field
   { name: 'videos', maxCount: MAX_COUNTS.videos }, // Define videos field
   { name: 'brochureUrl', maxCount: MAX_COUNTS.brochureUrl }, // Define brochure field
+  { name: 'reraCertificateUrl', maxCount: MAX_COUNTS.reraCertificateUrl },
   { name: 'layoutPlanUrl', maxCount: MAX_COUNTS.layoutPlanUrl }, // Define layout plan field
   { name: 'insideImagesUrls', maxCount: MAX_COUNTS.insideImagesUrls }, // Define inside images field
   { name: 'insideVideosUrls', maxCount: MAX_COUNTS.insideVideosUrls } // Define inside videos field

@@ -24,6 +24,7 @@ class Project {
     this.amenities = data.amenities || []; // Array of amenities available in the project.
     this.localityHighlights = data.localityHighlights || []; // Highlights of the local area surrounding the project.
     this.brochureUrl = data.brochureUrl; // URL to the project's brochure for additional information.
+    this.reraCertificateUrl = data.reraCertificateUrl; // URL to the project's RERA certificate PDF
     this.priceStart = parseInt(data.priceStart, 10); // Starting price for the units in the project.
     this.priceEnd = parseInt(data.priceEnd, 10); // Ending price for the units in the project.
     this.paymentPlan = data.paymentPlan; // Payment plan options for potential buyers.
@@ -118,6 +119,11 @@ class Project {
     if (data.brochureUrl && !this.isValidUrl(data.brochureUrl)) {
       errors.push('Invalid brochure URL format');
     }
+
+    // Validating reraCertificateUrl URL if provided.
+    if (data.reraCertificateUrl && !this.isValidUrl(data.reraCertificateUrl)) {
+      errors.push('Invalid reraCertificateUrl URL format');
+    }
     
     // Validating price fields.
     if (isNaN(priceStart)) errors.push('Price start must be an integer');
@@ -161,6 +167,7 @@ class Project {
       amenities: this.amenities,
       localityHighlights: this.localityHighlights,
       brochureUrl: this.brochureUrl,
+      reraCertificateUrl: this.reraCertificateUrl,
       priceStart: this.priceStart,
       priceEnd: this.priceEnd,
       paymentPlan: this.paymentPlan,

@@ -8,10 +8,12 @@ const FOLDER_PATHS = {
   images: 'ProjectImages', // Folder for project images
   videos: 'ProjectVideos', // Folder for project videos
   brochureUrl: 'ProjectBrochures', // Folder for project brochures
+  reraCertificateUrl: 'ReraCertificatePdf', // Folder for reraCertificateUrl pdf
   layoutPlanUrl: 'SeriesLayouts', // Folder for series layout plans
   insideImagesUrls: 'SeriesImages', // Folder for inside series images
   insideVideosUrls: 'SeriesVideos' // Folder for inside series videos
 };
+
 
 // Function to generate a unique filename for uploaded files
 const generateFileName = (file, folder, entityId = '') => {
@@ -31,16 +33,16 @@ const generateFileName = (file, folder, entityId = '') => {
 // Function to upload a single file to Firebase
 const uploadToFirebase = async (file, folder, entityId = '') => {
 
-  console.log('===== Upload To Firebase =====');
-  console.log('Uploading file:', file?.originalname);
-  console.log('To folder:', folder);
-  console.log('Entity ID:', entityId);
+  // console.log('===== Upload To Firebase =====');
+  // console.log('Uploading file:', file?.originalname);
+  // console.log('To folder:', folder);
+  // console.log('Entity ID:', entityId);
 
   if (!file) return null;
-  console.log('No file provided to uploadToFirebase'); // Return null if no file is provided
+  // console.log('No file provided to uploadToFirebase'); // Return null if no file is provided
   
   const fileName = generateFileName(file, folder, entityId);
-  console.log('Generated filename:', fileName); // Generate a unique file name
+  // console.log('Generated filename:', fileName); // Generate a unique file name
   const fileUpload = bucket.file(fileName); // Create a reference to the file in the bucket
 
   // Create a writable stream for uploading the file
@@ -66,11 +68,11 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
 
     // Handle successful upload
     blobStream.on('finish', async () => {
-      console.log('Stream finished for file:', fileName);
+      // console.log('Stream finished for file:', fileName);
       try {
         await fileUpload.makePublic(); // Make the uploaded file publicly accessible
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`; // Construct the public URL
-        console.log('File made public, URL:', publicUrl);
+        // console.log('File made public, URL:', publicUrl);
         resolve(publicUrl); // Resolve the promise with the public URL
       } catch (error) {
         console.error('Make public error:', error); // Log any errors when making the file public
@@ -87,16 +89,16 @@ const uploadToFirebase = async (file, folder, entityId = '') => {
 const uploadMultipleFiles = async (files, folder, entityId = '') => {
 
 
-  console.log('===== Upload Multiple Files =====');
-  console.log('Number of files:', Array.isArray(files) ? files.length : 1);
-  console.log('Folder:', folder);
-  console.log('Entity ID:', entityId);
+  // console.log('===== Upload Multiple Files =====');
+  // console.log('Number of files:', Array.isArray(files) ? files.length : 1);
+  // console.log('Folder:', folder);
+  // console.log('Entity ID:', entityId);
 
 
   // Check if the provided files is an array; if not, upload the single file
   if (!files || !Array.isArray(files)) {
     if (files) return uploadToFirebase(files, folder, entityId); // Upload single file if provided
-    console.log('No files provided to uploadMultipleFiles');
+    // console.log('No files provided to uploadMultipleFiles');
     return null; // Return null if no files are provided
   }
   
@@ -139,18 +141,18 @@ const deleteFromFirebase = async (fileUrl) => {
     fileName = fileName.split('?')[0]; // Remove query parameters
     fileName = decodeURIComponent(fileName); // Decode any URL-encoded characters
 
-    console.log('Attempting to delete file:', fileName); // Log the file name being deleted
+    // console.log('Attempting to delete file:', fileName); // Log the file name being deleted
 
     const file = bucket.file(fileName); // Reference the file in the bucket
     
     const [exists] = await file.exists(); // Check if the file exists
     if (!exists) {
-      console.log('File does not exist:', fileName); // Log if the file does not exist
+      // console.log('File does not exist:', fileName); // Log if the file does not exist
       return; // Exit if the file is not found
     }
 
     await file.delete(); // Delete the file from the bucket
-    console.log('Successfully deleted file:', fileName); // Log successful deletion
+    // console.log('Successfully deleted file:', fileName); // Log successful deletion
   } catch (error) {
     console.error('Error deleting file from Firebase:', error); // Log any errors during the deletion process
     throw error; // Propagate the error to the caller
