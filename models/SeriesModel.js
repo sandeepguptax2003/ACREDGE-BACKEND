@@ -9,17 +9,21 @@ class Series {
     this.projectId = data.projectId; // ID of the project this series belongs to
     this.towerId = data.towerId; // ID of the tower within the project
     this.seriesName = data.seriesName; // Name of the series
-    this.unitType = data.unitType; // Type of unit (Residential/Commercial)
-    this.typology = data.typology; // Typology of the units in this series
+    this.typology = data.typology || []; // Typology of the units in this series
+    this.parkingTypes = data.parkingTypes || []; // Array of selected parking types
     this.carpetArea = parseInt(data.carpetArea, 10); // Carpet area in square feet
     this.superArea = parseInt(data.superArea, 10); // Super area in square feet
-    this.unitDimensions = parseInt(data.unitDimensions, 10); // Dimensions of the unit
     this.startingPrice = parseInt(data.startingPrice, 10); // Starting price of the units in this series
     this.layoutPlanUrl = data.layoutPlanUrl; // URL for the layout plan (should be a PDF)
     
     // Initializing arrays for inside images and videos, ensuring they're defined
     this.insideImagesUrls = data.insideImagesUrls || [];
     this.insideVideosUrls = data.insideVideosUrls || [];
+
+    this.LivingRoom = data.LivingRoom;
+    this.DrawingRoom = data.DrawingRoom;
+    this.DiningRoom = data.DiningRoom;
+    this.Kitchen = data.Kitchen;
     
     // Directions for exit and master bedroom
     this.exitUnitDirection = data.exitUnitDirection; 
@@ -58,15 +62,31 @@ class Series {
     if (!data.seriesName) errors.push('Series name is required');
     
     // Validate unit type to ensure it's either Residential or Commercial
-    if (!['Residential', 'Commercial'].includes(data.unitType)) 
       errors.push('Unit type must be either Residential or Commercial');
       
-    if (!data.typology) errors.push('Typology is required');
+      if (!Array.isArray(data.typology)) {
+        errors.push('Typology must be an array');
+      } else {
+        const validTypologies = ['Servant Room', 'Utility', 'Store', 'Study', 'Basement', 
+                                'Powder Room', 'Puja Room', 'Terrace', 'FrontYard', 'Backyard'];
+        if (!data.typology.every(type => validTypologies.includes(type))) {
+          errors.push('Invalid typology selection');
+        }
+      }
+  
+      // Add parking type validation
+      if (!Array.isArray(data.parkingType)) {
+        errors.push('Parking type must be an array');
+      } else {
+        const validParkingTypes = ['Open', 'Covered', '0', '1', '2', '3', '4'];
+        if (!data.parkingType.every(type => validParkingTypes.includes(type))) {
+          errors.push('Invalid parking type selection');
+        }
+      }
 
     // Parse and validate numeric fields
     const carpetArea = parseInt(data.carpetArea, 10);
     const superArea = parseInt(data.superArea, 10);
-    const unitDimensions = parseInt(data.unitDimensions, 10);
     const startingPrice = parseInt(data.startingPrice, 10);
     const masterBedroomDimensions = parseInt(data.masterBedroomDimensions, 10);
     const totalBedrooms = parseInt(data.totalBedrooms, 10);
@@ -75,7 +95,6 @@ class Series {
     
     if (isNaN(carpetArea)) errors.push('Carpet area must be an integer');
     if (isNaN(superArea)) errors.push('Super area must be an integer');
-    if (isNaN(unitDimensions)) errors.push('Unit dimensions must be an integer');
     if (isNaN(startingPrice)) errors.push('Starting price must be an integer');
     
     // Validate the layout plan URL to ensure it's a PDF format
@@ -119,15 +138,18 @@ class Series {
       projectId: this.projectId,
       towerId: this.towerId,
       seriesName: this.seriesName,
-      unitType: this.unitType,
       typology: this.typology,
+      parkingTypes: this.parkingTypes,
       carpetArea: this.carpetArea,
       superArea: this.superArea,
-      unitDimensions: this.unitDimensions,
       startingPrice: this.startingPrice,
       layoutPlanUrl: this.layoutPlanUrl,
       insideImagesUrls: this.insideImagesUrls,
       insideVideosUrls: this.insideVideosUrls,
+      LivingRoom: this.LivingRoom,
+      DrawingRoom: this.DrawingRoom,
+      DiningRoom: this.DiningRoom,
+      Kitchen: this.Kitchen,
       exitUnitDirection: this.exitUnitDirection,
       masterBedroomDirection: this.masterBedroomDirection,
       masterBedroomDimensions: this.masterBedroomDimensions,

@@ -6,7 +6,6 @@ class Project {
     this.developerId = data.developerId; // The ID of the developer associated with this project.
     this.name = data.name; // The name of the project.
     this.address = data.address; // Address of the developer
-    this.googleMapLink = data.googleMapLink; // URL link to the project's location on Google Maps.
     this.whyThisProject = data.whyThisProject; // Justification for this project's importance.
     this.description = data.description; // A detailed description of the project.
     this.launchDate = data.launchDate; // The planned launch date of the project.
@@ -56,7 +55,6 @@ class Project {
     // Validate address presence
     if (!data.address) errors.push('Address is required');
 
-    if (!this.isValidUrl(data.googleMapLink)) errors.push('Valid Google Map link is required');
     if (!data.whyThisProject || data.whyThisProject.length < 50) errors.push('Why this project must be at least 50 characters');
     if (!data.description || data.description.length < 50) errors.push('Project description must be at least 50 characters');
     if (!data.launchDate || isNaN(new Date(data.launchDate).getTime())) errors.push('Valid launch date is required');
@@ -149,7 +147,6 @@ class Project {
       developerId: this.developerId,
       name: this.name,
       address: this.address,
-      googleMapLink: this.googleMapLink,
       whyThisProject: this.whyThisProject,
       description: this.description,
       launchDate: this.launchDate,

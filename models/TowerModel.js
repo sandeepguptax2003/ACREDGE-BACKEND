@@ -8,11 +8,13 @@ class Tower {
     this.developerId = data.developerId; // ID of the developer responsible for the tower
     this.projectId = data.projectId; // ID of the project this tower belongs to
     this.name = data.name; // Name of the tower
+    this.towerLobbyHeight = parseInt(data.towerLobbyHeight, 10); // Tower lobby height (1-4)
+    this.totalLobbyUnits = parseInt(data.totalLobbyUnits, 10); // Total lobby units (1-16)
     this.totalFloors = parseInt(data.totalFloors, 10); // Total number of floors in the tower
     this.coreCount = parseInt(data.coreCount, 10); // Number of cores (elevator shafts) in the tower
     this.totalUnits = parseInt(data.totalUnits, 10); // Total number of residential/commercial units in the tower
-    this.status = data.status; // Status of the tower (e.g., active or disabled)
-    this.towerStatus = data.towerStatus; // Current construction status of the tower (e.g., under construction or completed)
+    this.LobbyFloorCount = parseInt(data.LobbyFloorCount, 10); // Total number of floors in the tower
+    this.TotalLobbyUnits = parseInt(data.TotalLobbyUnits, 10); // Total number of floors in the tower
     this.createdBy = data.createdBy || null; // User who created this entry
     this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp(); // Timestamp for when the entry was created
     this.updatedBy = data.updatedBy || null; // User who last updated this entry
@@ -30,24 +32,29 @@ class Tower {
     if (!data.developerId) errors.push('Developer ID is required');
     if (!data.projectId) errors.push('Project ID is required');
     if (!data.name) errors.push('Tower name is required');
+
+    const towerLobbyHeight = parseInt(data.towerLobbyHeight, 10);
+    if (isNaN(towerLobbyHeight) || towerLobbyHeight < 1 || towerLobbyHeight > 4) {
+      errors.push('Tower lobby height must be between 1 and 4');
+    }
+    const totalLobbyUnits = parseInt(data.totalLobbyUnits, 10);
+    if (isNaN(totalLobbyUnits) || totalLobbyUnits < 1 || totalLobbyUnits > 16) {
+      errors.push('Total lobby units must be between 1 and 16');
+    }
     
     // Parse and validate integer fields; using parseInt ensures we convert them correctly
     const totalFloors = parseInt(data.totalFloors, 10);
     const coreCount = parseInt(data.coreCount, 10);
     const totalUnits = parseInt(data.totalUnits, 10);
+    const LobbyFloorCount = parseInt(data.LobbyFloorCount, 10);
+    const TotalLobbyUnits = parseInt(data.TotalLobbyUnits, 10);
     
     // Check for integer validity
     if (isNaN(totalFloors)) errors.push('Total floors must be an integer');
     if (isNaN(coreCount)) errors.push('Core count must be an integer');
     if (isNaN(totalUnits)) errors.push('Total units must be an integer');
-
-    // Validate status fields against allowed values
-    if (!['Active', 'Disable'].includes(data.status)) {
-      errors.push('Status must be either Active or Disable');
-    }
-    if (!['Under Construction', 'Completed'].includes(data.towerStatus)) {
-      errors.push('Tower status must be either Under Construction or Completed');
-    }
+    if (isNaN(LobbyFloorCount)) errors.push('LobbyFloorCount must be an integer');
+    if (isNaN(TotalLobbyUnits)) errors.push('TotalLobbyUnits must be an integer');
 
     // Return any validation errors found
     return errors;
@@ -59,11 +66,13 @@ class Tower {
       developerId: this.developerId, // Developer ID
       projectId: this.projectId, // Project ID
       name: this.name, // Tower name
+      towerLobbyHeight: this.towerLobbyHeight,
+      totalLobbyUnits: this.totalLobbyUnits,
       totalFloors: this.totalFloors, // Total floors
       coreCount: this.coreCount, // Core count
       totalUnits: this.totalUnits, // Total units
-      status: this.status, // Current status
-      towerStatus: this.towerStatus, // Construction status
+      LobbyFloorCount: this.LobbyFloorCount, // Total units
+      TotalLobbyUnits: this.TotalLobbyUnits, // Total units
       createdBy: this.createdBy, // User who created the entry
       createdOn: this.createdOn, // Timestamp of creation
       updatedBy: this.updatedBy, // User who last updated the entry
