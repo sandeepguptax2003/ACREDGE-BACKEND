@@ -16,7 +16,7 @@ class Project {
     this.reraCompletionDate = data.reraCompletionDate; // Date when the RERA approval process was completed.
     this.projectStatus = data.projectStatus; // Current status of the project (e.g., Delivered or Under Construction).
     this.status = data.status; // Current status of the project (e.g., Active or Disabled).
-    this.pinCode = parseInt(data.pinCode, 10); // The postal code of the project's location.
+    this.projectaddress = data.projectaddress; // The postal code of the project's location.
     this.category = data.category; // Category of the project (Residential or Commercial).
     this.timelineStart = data.timelineStart; // The start date of the project's timeline.
     this.timelineEnd = data.timelineEnd; // The end date of the project's timeline.
@@ -104,11 +104,9 @@ class Project {
     if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
     
     // Validating numeric fields and their formats.
-    const pinCode = parseInt(data.pinCode, 10);
     const priceStart = parseInt(data.priceStart, 10);
     const priceEnd = parseInt(data.priceEnd, 10);
 
-    if (isNaN(pinCode)) errors.push('Pin code must be an integer');
     if (!['Residential', 'Commercial'].includes(data.category)) errors.push('Category must be either Residential or Commercial');
     if (!data.timelineStart || isNaN(new Date(data.timelineStart).getTime())) errors.push('Valid timeline start date is required');
     if (!data.timelineEnd || isNaN(new Date(data.timelineEnd).getTime())) errors.push('Valid timeline end date is required');
@@ -157,7 +155,7 @@ class Project {
       reraCompletionDate: this.reraCompletionDate,
       projectStatus: this.projectStatus,
       status: this.status,
-      pinCode: this.pinCode,
+      projectaddress: this.projectaddress,
       category: this.category,
       timelineStart: this.timelineStart,
       timelineEnd: this.timelineEnd,
