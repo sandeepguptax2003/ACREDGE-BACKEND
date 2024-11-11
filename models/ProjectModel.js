@@ -5,7 +5,6 @@ class Project {
   constructor(data) {
     this.developerId = data.developerId; // The ID of the developer associated with this project.
     this.name = data.name; // The name of the project.
-    this.address = data.address; // Address of the developer
     this.whyThisProject = data.whyThisProject; // Justification for this project's importance.
     this.description = data.description; // A detailed description of the project.
     this.launchDate = data.launchDate; // The planned launch date of the project.
@@ -16,10 +15,8 @@ class Project {
     this.reraCompletionDate = data.reraCompletionDate; // Date when the RERA approval process was completed.
     this.projectStatus = data.projectStatus; // Current status of the project (e.g., Delivered or Under Construction).
     this.status = data.status; // Current status of the project (e.g., Active or Disabled).
-    this.projectaddress = data.projectaddress; // The postal code of the project's location.
+    this.projectAddress = data.projectAddress; // The postal code of the project's location.
     this.category = data.category; // Category of the project (Residential or Commercial).
-    this.timelineStart = data.timelineStart; // The start date of the project's timeline.
-    this.timelineEnd = data.timelineEnd; // The end date of the project's timeline.
     this.amenities = data.amenities || []; // Array of amenities available in the project.
     this.localityHighlights = data.localityHighlights || []; // Highlights of the local area surrounding the project.
     this.brochureUrl = data.brochureUrl; // URL to the project's brochure for additional information.
@@ -53,7 +50,7 @@ class Project {
     if (!data.name) errors.push('Project name is required');
 
     // Validate address presence
-    if (!data.address) errors.push('Address is required');
+    // if (!data.address) errors.push('Address is required');
 
     if (!data.whyThisProject || data.whyThisProject.length < 50) errors.push('Why this project must be at least 50 characters');
     if (!data.description || data.description.length < 50) errors.push('Project description must be at least 50 characters');
@@ -98,18 +95,11 @@ class Project {
     if (!data.reraCompletionDate || isNaN(new Date(data.reraCompletionDate).getTime())) errors.push('Valid RERA completion date is required');
     if (!['Delivered', 'Under Construction'].includes(data.projectStatus)) errors.push('Project status must be either Delivered or Under Construction');
     
-    // Validating RERA status and required fields based on status.
-    if (!['Approved', 'Not Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Approved or Not Approved');
-    if (data.reraStatus === 'Approved' && !data.reraNumber) errors.push('RERA number is required for approved projects');
-    if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
-    
     // Validating numeric fields and their formats.
     const priceStart = parseInt(data.priceStart, 10);
     const priceEnd = parseInt(data.priceEnd, 10);
 
     if (!['Residential', 'Commercial'].includes(data.category)) errors.push('Category must be either Residential or Commercial');
-    if (!data.timelineStart || isNaN(new Date(data.timelineStart).getTime())) errors.push('Valid timeline start date is required');
-    if (!data.timelineEnd || isNaN(new Date(data.timelineEnd).getTime())) errors.push('Valid timeline end date is required');
 
     // Validating brochure URL if provided.
     if (data.brochureUrl && !this.isValidUrl(data.brochureUrl)) {
@@ -144,7 +134,6 @@ class Project {
     return {
       developerId: this.developerId,
       name: this.name,
-      address: this.address,
       whyThisProject: this.whyThisProject,
       description: this.description,
       launchDate: this.launchDate,
@@ -155,10 +144,8 @@ class Project {
       reraCompletionDate: this.reraCompletionDate,
       projectStatus: this.projectStatus,
       status: this.status,
-      projectaddress: this.projectaddress,
+      projectAddress: this.projectAddress,
       category: this.category,
-      timelineStart: this.timelineStart,
-      timelineEnd: this.timelineEnd,
       amenities: this.amenities,
       localityHighlights: this.localityHighlights,
       brochureUrl: this.brochureUrl,

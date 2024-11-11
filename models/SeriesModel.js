@@ -10,7 +10,9 @@ class Series {
     this.towerId = data.towerId; // ID of the tower within the project
     this.seriesName = data.seriesName; // Name of the series
     this.typology = data.typology || []; // Typology of the units in this series
+    this.addOns = data.addOns;
     this.parkingTypes = data.parkingTypes || []; // Array of selected parking types
+    this.parkingFloorCount = data.parkingFloorCount || []; // Array of selected parking types
     this.carpetArea = parseInt(data.carpetArea, 10); // Carpet area in square feet
     this.superArea = parseInt(data.superArea, 10); // Super area in square feet
     this.startingPrice = parseInt(data.startingPrice, 10); // Starting price of the units in this series
@@ -21,9 +23,9 @@ class Series {
     this.insideVideosUrls = data.insideVideosUrls || [];
 
     this.LivingRoom = data.LivingRoom;
-    this.DrawingRoom = data.DrawingRoom;
-    this.DiningRoom = data.DiningRoom;
-    this.Kitchen = data.Kitchen;
+    this.drawingRoom = data.drawingRoom;
+    this.diningRoom = data.diningRoom;
+    this.kitchen = data.kitchen;
     
     // Directions for exit and master bedroom
     this.exitUnitDirection = data.exitUnitDirection; 
@@ -34,9 +36,6 @@ class Series {
     this.totalBedrooms = parseInt(data.totalBedrooms, 10); // Total number of bedrooms
     this.totalKitchens = parseInt(data.totalKitchens, 10); // Total number of kitchens
     this.totalWashrooms = parseInt(data.totalWashrooms, 10); // Total number of washrooms
-    
-    // Boolean indicating if there is a servant area
-    this.hasServantArea = data.hasServantArea === 'true' || data.hasServantArea === true; 
     
     // Status of the series (Active/Disable)
     this.status = data.status; 
@@ -63,14 +62,16 @@ class Series {
     
     // Validate unit type to ensure it's either Residential or Commercial
       errors.push('Unit type must be either Residential or Commercial');
+
+      if (!data.typology) errors.push('Typology is required');
       
-      if (!Array.isArray(data.typology)) {
-        errors.push('Typology must be an array');
+      if (!Array.isArray(data.addOns)) {
+        errors.push('addOns must be an array');
       } else {
-        const validTypologies = ['Servant Room', 'Utility', 'Store', 'Study', 'Basement', 
+        const addOns = ['Servant Room', 'Utility', 'Store', 'Study', 'Basement', 
                                 'Powder Room', 'Puja Room', 'Terrace', 'FrontYard', 'Backyard'];
-        if (!data.typology.every(type => validTypologies.includes(type))) {
-          errors.push('Invalid typology selection');
+        if (!data.addOns.every(type => addOns.includes(type))) {
+          errors.push('Invalid addOns selection');
         }
       }
   
@@ -78,11 +79,14 @@ class Series {
       if (!Array.isArray(data.parkingType)) {
         errors.push('Parking type must be an array');
       } else {
-        const validParkingTypes = ['Open', 'Covered', '0', '1', '2', '3', '4'];
+        const validParkingTypes = ['Open', 'Covered'];
         if (!data.parkingType.every(type => validParkingTypes.includes(type))) {
           errors.push('Invalid parking type selection');
         }
       }
+
+      // Validate status of the series
+    if (!['0', '1', '2', '3', '4'].includes(data.parkingFloorCount)) errors.push('parkingFloorCount must be either 0, 1, 2, 3, 4');
 
     // Parse and validate numeric fields
     const carpetArea = parseInt(data.carpetArea, 10);
@@ -114,11 +118,6 @@ class Series {
     if (isNaN(totalBedrooms)) errors.push('Total bedrooms must be an integer');
     if (isNaN(totalKitchens)) errors.push('Total kitchens must be an integer');
     if (isNaN(totalWashrooms)) errors.push('Total washrooms must be an integer');
-
-    // Check if hasServantArea is a boolean
-    if (typeof data.hasServantArea !== 'boolean' && data.hasServantArea !== 'true' && data.hasServantArea !== 'false') {
-      errors.push('Servant area must be a boolean');
-    }
     
     // Validate status of the series
     if (!['Active', 'Disable'].includes(data.status)) errors.push('Status must be either Active or Disable');
@@ -139,24 +138,25 @@ class Series {
       towerId: this.towerId,
       seriesName: this.seriesName,
       typology: this.typology,
+      addOns:this.addOns,
       parkingTypes: this.parkingTypes,
+      parkingFloorCount: this.parkingFloorCount,
       carpetArea: this.carpetArea,
       superArea: this.superArea,
       startingPrice: this.startingPrice,
       layoutPlanUrl: this.layoutPlanUrl,
       insideImagesUrls: this.insideImagesUrls,
       insideVideosUrls: this.insideVideosUrls,
-      LivingRoom: this.LivingRoom,
-      DrawingRoom: this.DrawingRoom,
-      DiningRoom: this.DiningRoom,
-      Kitchen: this.Kitchen,
+      livingRoom: this.livingRoom,
+      drawingRoom: this.drawingRoom,
+      diningRoom: this.diningRoom,
+      kitchen: this.kitchen,
       exitUnitDirection: this.exitUnitDirection,
       masterBedroomDirection: this.masterBedroomDirection,
       masterBedroomDimensions: this.masterBedroomDimensions,
       totalBedrooms: this.totalBedrooms,
       totalKitchens: this.totalKitchens,
       totalWashrooms: this.totalWashrooms,
-      hasServantArea: this.hasServantArea,
       status: this.status,
       createdBy: this.createdBy,
       createdOn: this.createdOn,
