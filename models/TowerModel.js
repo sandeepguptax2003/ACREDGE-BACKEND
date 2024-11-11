@@ -32,26 +32,26 @@ class Tower {
     if (!data.projectId) errors.push('Project ID is required');
     if (!data.name) errors.push('Tower name is required');
 
-    const towerLobbyHeight = parseInt(data.towerLobbyHeight, 10);
-    if (isNaN(towerLobbyHeight) || towerLobbyHeight < 1 || towerLobbyHeight > 4) {
-      errors.push('Tower lobby height must be between 1 and 4');
-    }
-    const totalLobbyUnits = parseInt(data.totalLobbyUnits, 10);
-    if (isNaN(totalLobbyUnits) || totalLobbyUnits < 1 || totalLobbyUnits > 16) {
-      errors.push('Total lobby units must be between 1 and 16');
-    }
+    // const towerLobbyHeight = parseInt(data.towerLobbyHeight, 10);
+    // if (isNaN(towerLobbyHeight) || towerLobbyHeight < 1 || towerLobbyHeight > 4) {
+    //   errors.push('Tower lobby height must be between 1 and 4');
+    // }
+    // const totalLobbyUnits = parseInt(data.totalLobbyUnits, 10);
+    // if (isNaN(totalLobbyUnits) || totalLobbyUnits < 1 || totalLobbyUnits > 16) {
+    //   errors.push('Total lobby units must be between 1 and 16');
+    // }
     
     // Parse and validate integer fields; using parseInt ensures we convert them correctly
     const totalFloors = parseInt(data.totalFloors, 10);
     const coreCount = parseInt(data.coreCount, 10);
     const totalUnits = parseInt(data.totalUnits, 10);
-    const LobbyFloorCount = parseInt(data.LobbyFloorCount, 10);
+    // const LobbyFloorCount = parseInt(data.LobbyFloorCount, 10);
     
     // Check for integer validity
     if (isNaN(totalFloors)) errors.push('Total floors must be an integer');
     if (isNaN(coreCount)) errors.push('Core count must be an integer');
     if (isNaN(totalUnits)) errors.push('Total units must be an integer');
-    if (isNaN(LobbyFloorCount)) errors.push('LobbyFloorCount must be an integer');
+    // if (isNaN(LobbyFloorCount)) errors.push('LobbyFloorCount must be an integer');
 
     // Return any validation errors found
     return errors;
