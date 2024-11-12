@@ -11,7 +11,8 @@ const FOLDER_PATHS = {
   reraCertificateUrl: 'ReraCertificatePdf', // Folder for reraCertificateUrl pdf
   layoutPlanUrl: 'SeriesLayouts', // Folder for series layout plans
   insideImagesUrls: 'SeriesImages', // Folder for inside series images
-  insideVideosUrls: 'SeriesVideos' // Folder for inside series videos
+  insideVideosUrls: 'SeriesVideos', // Folder for inside series videos
+  amenityLogo: 'AmenitiesLogo'
 };
 
 

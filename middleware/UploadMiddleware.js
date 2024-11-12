@@ -14,7 +14,8 @@ const FILE_LIMITS = {
   reraCertificateUrl: 50 * 1024 * 1024, // Maximum size for RERA certificate is 50MB
   layoutPlanUrl: 50 * 1024 * 1024, // Maximum size for layout plan is 50MB
   insideImagesUrls: 10 * 1024 * 1024, // Maximum size for inside images is 10MB
-  insideVideosUrls: 50 * 1024 * 1024 // Maximum size for inside videos is 50MB
+  insideVideosUrls: 50 * 1024 * 1024, // Maximum size for inside videos is 50MB
+  amenityLogo: 2 * 1024 * 1024 // 2MB like developer logo
 };
 
 // Define maximum counts for each file type
@@ -26,7 +27,8 @@ const MAX_COUNTS = {
   reraCertificateUrl: 1, // Only 1 RERA certificate is allowed
   layoutPlanUrl: 1, // Only 1 layout plan is allowed
   insideImagesUrls: 20, // Maximum 20 inside images
-  insideVideosUrls: 5 // Maximum 5 inside videos
+  insideVideosUrls: 5, // Maximum 5 inside videos
+  amenityLogo: 1
 };
 
 // Function to filter files based on type, size, and count

@@ -15,6 +15,7 @@ const TowerRoutes = require("./routes/TowerRoutes"); // Manages tower-related op
 const SeriesRoutes = require("./routes/SeriesRoutes"); // Manages series-related functionalities
 const DashboardRoutes = require("./routes/DashboardRoutes"); // Handles dashboard functionalities
 const { handleUploadError } = require('./middleware/UploadMiddleware'); // Middleware for handling upload errors
+const amenityRoutes = require('./routes/AmenityRoutes');
 
 // Create an instance of an Express application
 const app = express();
@@ -41,6 +42,7 @@ app.use("/api/projects", ProjectRoutes); // Project-related routes
 app.use("/api/towers", TowerRoutes); // Tower-related routes
 app.use("/api/series", SeriesRoutes); // Series-related routes
 app.use('/api/dashboard', DashboardRoutes); // Dashboard-related routes
+app.use('/api/amenities', amenityRoutes);
 
 // Register the error handling middleware at the end of the middleware stack
 // This will catch any upload errors occurring in the preceding routes
