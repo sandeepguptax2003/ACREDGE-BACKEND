@@ -11,7 +11,7 @@ class Series {
     this.seriesName = data.seriesName; // Name of the series
     this.typology = data.typology || []; // Typology of the units in this series
     this.addOns = data.addOns;
-    this.parkingTypes = data.parkingTypes || [];
+    this.parkingTypes = data.parkingTypes;
     this.parkingFloorCount = parseInt(data.parkingFloorCount, 10);
     this.carpetArea = parseInt(data.carpetArea, 10); // Carpet area in square feet
     this.superArea = parseInt(data.superArea, 10); // Super area in square feet
@@ -73,13 +73,18 @@ class Series {
       }
   
       // Validate parkingTypes (checkboxes for 'Open' and 'Covered')
-    if (!Array.isArray(data.parkingTypes)) {
-      errors.push('Parking type must be an array');
-    } else {
-      const validParkingTypes = ['Open', 'Covered'];
-      if (!data.parkingTypes.every(type => validParkingTypes.includes(type))) {
-        errors.push('Invalid parking type selection');
-      }
+    // if (!Array.isArray(data.parkingTypes)) {
+    //   errors.push('Parking type must be an array');
+    // } else {
+    //   const validParkingTypes = ['Open', 'Covered'];
+    //   if (!data.parkingTypes.every(type => validParkingTypes.includes(type))) {
+    //     errors.push('Invalid parking type selection');
+    //   }
+    // }
+
+    const validParkingTypes = ['Open', 'Covered'];
+    if (!validParkingTypes.includes(data.parkingTypes)) {
+      errors.push('Invalid parking type selection');
     }
 
       // Validate parkingFloorCount (dropdown 0-4) only if 'Covered' parking is selected
