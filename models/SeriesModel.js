@@ -11,8 +11,8 @@ class Series {
     this.seriesName = data.seriesName; // Name of the series
     this.typology = data.typology || []; // Typology of the units in this series
     this.addOns = data.addOns;
-    this.parkingTypes = data.parkingTypes || []; // Array of selected parking types
-    this.parkingFloorCount = data.parkingFloorCount || []; // Array of selected parking types
+    this.parkingTypes = data.parkingTypes || [];
+    this.parkingFloorCount = parseInt(data.parkingFloorCount, 10);
     this.carpetArea = parseInt(data.carpetArea, 10); // Carpet area in square feet
     this.superArea = parseInt(data.superArea, 10); // Super area in square feet
     this.startingPrice = parseInt(data.startingPrice, 10); // Starting price of the units in this series
@@ -59,9 +59,6 @@ class Series {
     if (!data.projectId) errors.push('Project ID is required');
     if (!data.towerId) errors.push('Tower ID is required');
     if (!data.seriesName) errors.push('Series name is required');
-    
-    // Validate unit type to ensure it's either Residential or Commercial
-      errors.push('Unit type must be either Residential or Commercial');
 
       if (!data.typology) errors.push('Typology is required');
       
@@ -75,18 +72,23 @@ class Series {
         }
       }
   
-      // Add parking type validation
-      if (!Array.isArray(data.parkingType)) {
-        errors.push('Parking type must be an array');
-      } else {
-        const validParkingTypes = ['Open', 'Covered'];
-        if (!data.parkingType.every(type => validParkingTypes.includes(type))) {
-          errors.push('Invalid parking type selection');
-        }
+      // Validate parkingTypes (checkboxes for 'Open' and 'Covered')
+    if (!Array.isArray(data.parkingTypes)) {
+      errors.push('Parking type must be an array');
+    } else {
+      const validParkingTypes = ['Open', 'Covered'];
+      if (!data.parkingTypes.every(type => validParkingTypes.includes(type))) {
+        errors.push('Invalid parking type selection');
       }
+    }
 
-      // Validate status of the series
-    if (!['0', '1', '2', '3', '4'].includes(data.parkingFloorCount)) errors.push('parkingFloorCount must be either 0, 1, 2, 3, 4');
+      // Validate parkingFloorCount (dropdown 0-4) only if 'Covered' parking is selected
+    if (data.parkingTypes && data.parkingTypes.includes('Covered')) {
+      const parkingFloorCount = parseInt(data.parkingFloorCount, 10);
+      if (![0, 1, 2, 3, 4].includes(parkingFloorCount)) {
+        errors.push('parkingFloorCount must be either 0, 1, 2, 3, 4');
+      }
+    }
 
     // Parse and validate numeric fields
     const carpetArea = parseInt(data.carpetArea, 10);
