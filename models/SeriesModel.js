@@ -22,7 +22,7 @@ class Series {
     this.insideImagesUrls = data.insideImagesUrls || [];
     this.insideVideosUrls = data.insideVideosUrls || [];
 
-    this.LivingRoom = data.LivingRoom;
+    this.livingRoom = data.livingRoom;
     this.drawingRoom = data.drawingRoom;
     this.diningRoom = data.diningRoom;
     this.kitchen = data.kitchen;
