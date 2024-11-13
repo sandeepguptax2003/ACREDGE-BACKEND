@@ -4,10 +4,10 @@ class Amenity {
     constructor(data) {
       this.name = data.name;
       this.logoUrl = data.logoUrl;
-      this.createdBy = data.createdBy || null;
-      this.createdOn = data.createdOn || null;
-      this.updatedBy = data.updatedBy || null;
-      this.updatedOn = data.updatedOn || null;
+      this.createdBy = data.createdBy || null; // User who created the record (if available)
+    this.createdOn = data.createdOn || admin.firestore.FieldValue.serverTimestamp(); // Timestamp when the record was created
+    this.updatedBy = data.updatedBy || null; // User who last updated the record (if available)
+    this.updatedOn = data.updatedOn || admin.firestore.FieldValue.serverTimestamp(); // Timestamp when the record was last updated
     }
   
     static collectionName = 'amenities';
