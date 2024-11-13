@@ -4,7 +4,7 @@ const admin = require('firebase-admin');
 class Developer {
   constructor(data) {
     // Initialize developer properties from the input data
-    this.name = data.name.toUpperCase(); // Store name in uppercase for consistency
+    this.name = data.name; // Store name in uppercase for consistency
     this.address = data.address; // Address of the developer
     this.incorporationDate = data.incorporationDate; // Date of incorporation
     this.totalProjectsDelivered = parseInt(data.totalProjectsDelivered, 10); // Total projects delivered, converted to integer
@@ -29,9 +29,9 @@ class Developer {
   // Static method for validating developer data
   static validate(data) {
     const errors = []; // Array to store error messages
-    // Validate name: it must be present and in capital letters
-    if (!data.name || !/^[A-Z0-9\s]+$/.test(data.name)) 
-      errors.push('Developer name is required and must be in capital letters');
+    // // Validate name: it must be present and in capital letters
+    // if (!data.name || !/^[A-Z0-9\s]+$/.test(data.name)) 
+    //   errors.push('Developer name is required and must be in capital letters');
     
     // Validate address presence
     if (!data.address) errors.push('Address is required');
