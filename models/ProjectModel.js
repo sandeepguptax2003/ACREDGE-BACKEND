@@ -93,11 +93,11 @@ class Project {
       });
     }
     
-    if (!Array.isArray(data.amenities)) {
-      errors.push('Amenities must be an array');
-    } else if (data.amenities.length === 0) {
-      errors.push('At least one amenity is required');
-    }
+    // if (!Array.isArray(data.amenities)) {
+    //   errors.push('Amenities must be an array');
+    // } else if (data.amenities.length === 0) {
+    //   errors.push('At least one amenity is required');
+    // }
 
     // Validating RERA status and required fields based on status.
     if (!['Rera Applied', 'Rera Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Rera Applied or Rera Approved');
