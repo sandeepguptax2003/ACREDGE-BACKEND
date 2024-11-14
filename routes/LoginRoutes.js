@@ -1,4 +1,3 @@
-// Import the Express framework and create a router instance
 const express = require('express');
 const router = express.Router();
 

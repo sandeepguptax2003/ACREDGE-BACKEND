@@ -1,4 +1,3 @@
-// Import the Express framework and create a router instance
 const express = require('express');
 const router = express.Router();
 
@@ -21,6 +20,6 @@ router.get('/:id', isAuthenticated, developerController.getDeveloperById);
 router.put('/:id', isAuthenticated, upload.fields(uploadFields), developerController.updateDeveloper);
 
 // Route to delete a developer by their ID
-router.delete('/:id', isAuthenticated, developerController.deleteDeveloper);
+// router.delete('/:id', isAuthenticated, developerController.deleteDeveloper);
 
 module.exports = router;

@@ -27,6 +27,6 @@ router.put('/:id', isAuthenticated, upload.fields(uploadFields), seriesControlle
 
 // Route to delete a series by its ID
 // This route requires authentication to prevent unauthorized users from deleting a series
-router.delete('/:id', isAuthenticated, seriesController.deleteSeries);
+// router.delete('/:id', isAuthenticated, seriesController.deleteSeries);
 
 module.exports = router;

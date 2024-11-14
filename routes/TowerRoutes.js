@@ -23,6 +23,6 @@ router.put('/:id', isAuthenticated, towerController.updateTower);
 
 // Route to delete a tower by its ID
 // This route is protected, preventing unauthorized users from deleting a tower
-router.delete('/:id', isAuthenticated, towerController.deleteTower);
+// router.delete('/:id', isAuthenticated, towerController.deleteTower);
 
 module.exports = router;

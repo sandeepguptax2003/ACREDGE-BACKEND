@@ -27,6 +27,6 @@ router.put('/:id', isAuthenticated, upload.fields(uploadFields), projectControll
 
 // Route to delete a project by its ID
 // This route requires authentication to prevent unauthorized deletions
-router.delete('/:id', isAuthenticated, projectController.deleteProject);
+// router.delete('/:id', isAuthenticated, projectController.deleteProject);
 
 module.exports = router;
