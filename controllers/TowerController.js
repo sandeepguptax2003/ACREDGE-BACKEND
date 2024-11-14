@@ -110,14 +110,14 @@ exports.updateTower = async (req, res) => {
 };
 
 // Controller for deleting a tower
-exports.deleteTower = async (req, res) => {
-  try {
-    // Delete the tower document from Firestore using the provided ID
-    await db.collection(Tower.collectionName).doc(req.params.id).delete();
-    // Respond with a success message after deletion
-    res.status(200).json({ message: 'Tower deleted successfully' });
-  } catch (error) {
-    console.error('Error in Delete Tower:', error); // Log any error that occurs
-    res.status(500).json({ error: error.message }); // Return the error message
-  }
-};
+// exports.deleteTower = async (req, res) => {
+//   try {
+//     // Delete the tower document from Firestore using the provided ID
+//     await db.collection(Tower.collectionName).doc(req.params.id).delete();
+//     // Respond with a success message after deletion
+//     res.status(200).json({ message: 'Tower deleted successfully' });
+//   } catch (error) {
+//     console.error('Error in Delete Tower:', error); // Log any error that occurs
+//     res.status(500).json({ error: error.message }); // Return the error message
+//   }
+// };

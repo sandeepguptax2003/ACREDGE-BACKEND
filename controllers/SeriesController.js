@@ -217,31 +217,31 @@ exports.updateSeries = async (req, res) => {
 };
 
 // Controller for deleting a series by ID
-exports.deleteSeries = async (req, res) => {
-  try {
-    const { id } = req.params;
+// exports.deleteSeries = async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    // Fetch the document to access any files for deletion
-    const docRef = db.collection(Series.collectionName).doc(id);
-    const doc = await docRef.get();
+//     // Fetch the document to access any files for deletion
+//     const docRef = db.collection(Series.collectionName).doc(id);
+//     const doc = await docRef.get();
 
-    if (!doc.exists) {
-      return res.status(404).json({ message: 'Series not found' });
-    }
+//     if (!doc.exists) {
+//       return res.status(404).json({ message: 'Series not found' });
+//     }
 
-    const data = doc.data();
+//     const data = doc.data();
 
-    // Delete any associated files (images, videos, layout plan) from storage
-    if (data.insideImagesUrls) await deleteMultipleFiles(data.insideImagesUrls);
-    if (data.insideVideosUrls) await deleteMultipleFiles(data.insideVideosUrls);
-    if (data.layoutPlanUrl) await deleteFromFirebase(data.layoutPlanUrl);
+//     // Delete any associated files (images, videos, layout plan) from storage
+//     if (data.insideImagesUrls) await deleteMultipleFiles(data.insideImagesUrls);
+//     if (data.insideVideosUrls) await deleteMultipleFiles(data.insideVideosUrls);
+//     if (data.layoutPlanUrl) await deleteFromFirebase(data.layoutPlanUrl);
 
-    // Delete the Firestore document
-    await docRef.delete();
+//     // Delete the Firestore document
+//     await docRef.delete();
 
-    res.status(200).json({ message: 'Series deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting series:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
+//     res.status(200).json({ message: 'Series deleted successfully' });
+//   } catch (error) {
+//     console.error('Error deleting series:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };

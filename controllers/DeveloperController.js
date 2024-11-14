@@ -158,12 +158,12 @@ exports.updateDeveloper = async (req, res) => {
   }
 };
 
-// Function to delete a developer by ID
-exports.deleteDeveloper = async (req, res) => {
-  try {
-    await db.collection(Developer.collectionName).doc(req.params.id).delete();
-    res.status(200).json({ message: 'Developer deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// // Function to delete a developer by ID
+// exports.deleteDeveloper = async (req, res) => {
+//   try {
+//     await db.collection(Developer.collectionName).doc(req.params.id).delete();
+//     res.status(200).json({ message: 'Developer deleted successfully' });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };

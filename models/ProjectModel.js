@@ -17,13 +17,7 @@ class Project {
     this.status = data.status; // Current status of the project (e.g., Active or Disabled).
     this.projectAddress = data.projectAddress; // The postal code of the project's location.
     this.category = data.category; // Category of the project (Residential or Commercial).
-    this.amenities = data.amenities; 
-    
-    // .map(amenity => ({
-    //   id: amenity.id,
-    //   name: amenity.name,
-    //   logoUrl: amenity.logoUrl
-    // }));
+    this.amenities = data.amenities;
     this.localityHighlights = data.localityHighlights || []; // Highlights of the local area surrounding the project.
     this.brochureUrl = data.brochureUrl; // URL to the project's brochure for additional information.
     this.reraCertificateUrl = data.reraCertificateUrl; // URL to the project's RERA certificate PDF
@@ -94,12 +88,6 @@ class Project {
         }
       });
     }
-    
-    // if (!Array.isArray(data.amenities)) {
-    //   errors.push('Amenities must be an array');
-    // } else if (data.amenities.length === 0) {
-    //   errors.push('At least one amenity is required');
-    // }
 
     // Validating RERA status and required fields based on status.
     if (!['Rera Applied', 'Rera Approved'].includes(data.reraStatus)) errors.push('RERA status must be either Rera Applied or Rera Approved');

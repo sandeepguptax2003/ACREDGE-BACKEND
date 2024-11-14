@@ -1,4 +1,3 @@
-// Import necessary modules
 const { admin } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');

@@ -1,7 +1,5 @@
-// Load environment variables from .env file into process.env
 require("dotenv").config();
 
-// Import necessary modules
 const express = require("express"); // Framework for building web applications
 const cors = require("cors"); // Middleware for enabling CORS (Cross-Origin Resource Sharing)
 const bodyParser = require("body-parser"); // Middleware for parsing request bodies

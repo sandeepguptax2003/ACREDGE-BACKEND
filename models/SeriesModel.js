@@ -1,4 +1,3 @@
-// Importing the Firebase Admin SDK for interacting with Firestore
 const admin = require('firebase-admin');
 
 // Defining a Series class to represent a series of units within a project
@@ -71,16 +70,6 @@ class Series {
           errors.push('Invalid addOns selection');
         }
       }
-  
-      // Validate parkingTypes (checkboxes for 'Open' and 'Covered')
-    // if (!Array.isArray(data.parkingTypes)) {
-    //   errors.push('Parking type must be an array');
-    // } else {
-    //   const validParkingTypes = ['Open', 'Covered'];
-    //   if (!data.parkingTypes.every(type => validParkingTypes.includes(type))) {
-    //     errors.push('Invalid parking type selection');
-    //   }
-    // }
 
     const validParkingTypes = ['Open', 'Covered'];
     if (!validParkingTypes.includes(data.parkingTypes)) {

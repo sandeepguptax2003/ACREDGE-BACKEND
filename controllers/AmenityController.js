@@ -14,8 +14,6 @@ exports.createAmenity = async (req, res) => {
     }
 
     const docRef = await db.collection(Amenity.collectionName).add({
-      // createdBy: req.user.email,
-      // createdOn: new Date(),
     });
 
     if (files && files.logoUrl) {
@@ -31,9 +29,6 @@ exports.createAmenity = async (req, res) => {
       await docRef.delete();
       return res.status(400).json({ errors });
     }
-
-    // amenityData.createdBy = req.user.email;
-    // amenityData.createdOn = new Date();
     
     const amenity = new Amenity(amenityData);
     await docRef.update(amenity.toFirestore());

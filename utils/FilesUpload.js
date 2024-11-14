@@ -15,7 +15,6 @@ const FOLDER_PATHS = {
   amenityLogo: 'AmenitiesLogo'
 };
 
-
 // Function to generate a unique filename for uploaded files
 const generateFileName = (file, folder, entityId = '') => {
   const timestamp = new Date().getTime(); // Get the current timestamp

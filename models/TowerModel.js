@@ -1,4 +1,3 @@
-// Import the Firebase Admin SDK
 const admin = require('firebase-admin');
 
 // Define the Tower class to represent a building structure within a project

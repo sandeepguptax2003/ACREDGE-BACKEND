@@ -317,38 +317,38 @@ async function cleanupFiles(filesToDelete) {
   }
 }
 
-// Function to delete a project and its associated files from Firestore
-exports.deleteProject = async (req, res) => {
-  try {
-    const { id } = req.params;
+// // Function to delete a project and its associated files from Firestore
+// exports.deleteProject = async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    // Retrieve the project document
-    const docRef = await db.collection(Project.collectionName).doc(id).get();
-    if (!docRef.exists) {
-      return res.status(404).json({ message: 'Project not found' });
-    }
-    const projectData = docRef.data();
+//     // Retrieve the project document
+//     const docRef = await db.collection(Project.collectionName).doc(id).get();
+//     if (!docRef.exists) {
+//       return res.status(404).json({ message: 'Project not found' });
+//     }
+//     const projectData = docRef.data();
 
-    // Delete files associated with the project if they exist
-    if (projectData.images) {
-      await deleteMultipleFiles(projectData.images);
-    }
-    if (projectData.videos) {
-      await deleteMultipleFiles(projectData.videos);
-    }
-    if (projectData.brochureUrl) {
-      await deleteFromFirebase(projectData.brochureUrl);
-    }
-    if (projectData.reraCertificateUrl) {
-      await deleteFromFirebase(projectData.reraCertificateUrl);
-    }
+//     // Delete files associated with the project if they exist
+//     if (projectData.images) {
+//       await deleteMultipleFiles(projectData.images);
+//     }
+//     if (projectData.videos) {
+//       await deleteMultipleFiles(projectData.videos);
+//     }
+//     if (projectData.brochureUrl) {
+//       await deleteFromFirebase(projectData.brochureUrl);
+//     }
+//     if (projectData.reraCertificateUrl) {
+//       await deleteFromFirebase(projectData.reraCertificateUrl);
+//     }
 
-    // Finally, delete the project document
-    await db.collection(Project.collectionName).doc(id).delete();
+//     // Finally, delete the project document
+//     await db.collection(Project.collectionName).doc(id).delete();
 
-    res.status(200).json({ message: 'Project deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting project:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
+//     res.status(200).json({ message: 'Project deleted successfully' });
+//   } catch (error) {
+//     console.error('Error deleting project:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
