@@ -14,15 +14,8 @@ router.post('/', isAuthenticated, upload.fields(uploadFields), developerControll
 // Route to retrieve all developers
 router.get('/', isAuthenticated, async (req, res, next) => {
     try {
-      // If it's a public access request, modify the query as needed
-      if (req.user.isPublicAccess) {
-        // You might want to modify the controller to only return public data
-        // Or handle it here
-        const developers = await developerController.getAllDevelopers(req, res);
-        return developers;
-      }
-      // Normal flow for authenticated users
-      return developerController.getAllDevelopers(req, res);
+      // The controller can check req.user.role to determine access level
+      return await developerController.getAllDevelopers(req, res);
     } catch (error) {
       next(error);
     }
