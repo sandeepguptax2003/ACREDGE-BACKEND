@@ -3,7 +3,8 @@ const router = express.Router();
 
 const developerController = require('../controllers/DeveloperController');
 
-const { isAuthenticated } = require('../controllers/LoginController');
+// const { isAuthenticated } = require('../controllers/LoginController');
+const { isAuthenticated } = require('../middleware/LoginMiddleware', '../controllers/LoginController');
 
 const { upload, uploadFields } = require('../middleware/UploadMiddleware');
 

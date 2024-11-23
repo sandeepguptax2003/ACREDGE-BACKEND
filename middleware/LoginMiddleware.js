@@ -1,32 +1,69 @@
 const jwt = require('jsonwebtoken');
-const { isAuthenticated } = require('../controllers/LoginController');
+const { admin } = require('../config/firebase');
 
-// Middleware to verify the JWT token provided in the request headers
-exports.verifyToken = (req, res, next) => {
-  // Retrieve the token from the authorization header
-  const token = req.headers['authorization'];
+const isAdminDomain = (email) => email?.endsWith('@acredge.in');
+const isUserDomain = (origin) => origin?.includes('acredge-web--acredge-app-252ab.asia-east1.hosted.app');
 
-  // Check if the token is not provided
-  if (!token) {
-    return res.status(403).json({ message: "No token provided." }); // Respond with a forbidden status if no token is present
-  }
+const crossDomainAuth = async (req, res, next) => {
+  try {
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const origin = req.headers.origin || req.get('origin');
 
-  // Verify the token using the secret key defined in environment variables
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    // If an error occurs during verification, respond with an unauthorized status
-    if (err) {
-      return res.status(401).json({ message: "Unauthorized!" }); // Respond with an error message if token is invalid
+    if (!token) {
+      return res.status(401).json({ message: "No token provided." });
     }
-    
-    // If verification is successful, decode the token and attach the user info to the request object
-    req.user = decoded; // Store the decoded user information for use in subsequent middleware or route handlers
 
-    // Call the next middleware in the stack
-    next();
-  });
+    const decodedToken = jwt.decode(token);
+    const isAdmin = decodedToken?.email;
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (isAdmin) {
+      // Admin authentication
+      if (!isAdminDomain(verified.email)) {
+        return res.status(403).json({ message: "Not authorized as admin." });
+      }
+
+      const tokenDoc = await admin.firestore()
+        .collection('tokens')
+        .doc(verified.email)
+        .get();
+
+      if (!tokenDoc.exists || tokenDoc.data().token !== token) {
+        return res.status(401).json({ message: "Invalid admin token." });
+      }
+
+      req.user = { email: verified.email, role: 'admin' };
+      return next();
+    } else {
+      // User authentication
+      if (!isUserDomain(origin) && req.method !== 'GET') {
+        return res.status(403).json({ message: "Operation not allowed for this domain." });
+      }
+
+      const tokenDoc = await admin.firestore()
+        .collection('tokens')
+        .doc(verified.phoneNumber)
+        .get();
+
+      if (!tokenDoc.exists || tokenDoc.data().token !== token) {
+        return res.status(401).json({ message: "Invalid user token." });
+      }
+
+      req.user = { phoneNumber: verified.phoneNumber, role: 'user' };
+      return next();
+    }
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(401).json({ message: "Authentication failed." });
+  }
 };
 
-// Export the verifyToken function for use in other parts of the application
+// Updated isAuthenticated middleware that uses crossDomainAuth
+const isAuthenticated = async (req, res, next) => {
+  return crossDomainAuth(req, res, next);
+};
+
 module.exports = {
-  verifyToken: isAuthenticated // Export the isAuthenticated function for handling authentication
+  isAuthenticated,
+  verifyToken: isAuthenticated
 };
