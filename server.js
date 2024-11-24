@@ -27,14 +27,7 @@ app.use(bodyParser.json());
 // Configure CORS settings
 app.use(
   cors({
-    origin: [
-      true,
-      'http://localhost:8000', // User local development
-      'https://acredge-web--acredge-app-252ab.asia-east1.hosted.app', // User production
-      'http://localhost:3000/',
-      '127.0.0.1:3000',
-      /\.acredge\.in$/ // Any subdomain of acredge.in
-    ],
+    origin: true, // Allow requests from any origin
     credentials: true, // Allow credentials to be included in requests
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
   })

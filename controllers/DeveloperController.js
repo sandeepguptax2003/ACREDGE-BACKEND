@@ -61,45 +61,11 @@ exports.createDeveloper = async (req, res) => {
 // Function to get all developers in the database
 exports.getAllDevelopers = async (req, res) => {
   try {
-    let developersQuery = db.collection('developers'); // Use actual collection name
-
-    // If public or user access, add any necessary filters
-    if (req.user.role === 'public' || req.user.role === 'user') {
-      developersQuery = developersQuery.where('status', '==', 'active');
-    }
-
-    const snapshot = await developersQuery.get();
-    
-    const developers = snapshot.docs.map(doc => {
-      const data = doc.data();
-      
-      // Filter sensitive data for public/user access
-      if (req.user.role === 'public' || req.user.role === 'user') {
-        const publicData = {
-          id: doc.id,
-          name: data.name,
-          description: data.description,
-          logo: data.logo,
-          // Add other public fields as needed
-        };
-        return publicData;
-      }
-      
-      // Return full data for admin
-      return {
-        id: doc.id,
-        ...data
-      };
-    });
-
-    // Add debugging logs
-    console.log('User role:', req.user.role);
-    console.log('Developers count:', developers.length);
-
-    res.status(200).json(developers);
+    const snapshot = await db.collection(Developer.collectionName).get();
+    const developers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.status(200).json(developers); // Return the list of all developers
   } catch (error) {
-    console.error('Error in getAllDevelopers:', error);
-    res.status(500).json({ message: "Error fetching developers", error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
