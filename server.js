@@ -25,11 +25,26 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 
 // Configure CORS settings
+// app.use(
+//   cors({
+//     origin: true, // Allow requests from any origin
+//     credentials: true, // Allow credentials to be included in requests
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
+//   })
+// );
+
 app.use(
   cors({
-    origin: true, // Allow requests from any origin
-    credentials: true, // Allow credentials to be included in requests
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
+    origin: [
+      'https://acredge-web--acredge-app-252ab.asia-east1.hosted.app',
+      'https://admin-acredge-a801b.web.app/',
+      'https://www.acredge.in',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      true
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
