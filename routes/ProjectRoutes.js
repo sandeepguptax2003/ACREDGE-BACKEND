@@ -7,6 +7,8 @@ const { isAuthenticated } = require('../controllers/LoginController');
 
 const { upload, uploadFields } = require('../middleware/UploadMiddleware');
 
+const { verifyUserForAdminRoutes } = require('../shared/crossSiteAuth');
+
 // Route to create a new project
 // This route is protected and requires the user to be authenticated
 // It also supports file uploads through the upload middleware
@@ -15,6 +17,8 @@ router.post('/', isAuthenticated, upload.fields(uploadFields), projectController
 // Route to retrieve all projects
 // This route is also protected and requires user authentication
 router.get('/', isAuthenticated, projectController.getAllProjects);
+
+router.get('/public',verifyUserForAdminRoutes, projectController.getAllProjects);
 
 // Route to retrieve a specific project by its ID
 // This route requires authentication to ensure that only logged-in users can access project details

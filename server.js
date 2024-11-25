@@ -33,7 +33,6 @@ app.use(bodyParser.json());
 //   })
 // );
 
-// In admin's server.js
 app.use(
   cors({
     origin: [
@@ -56,7 +55,6 @@ app.use("/api/series", SeriesRoutes); // Series-related routes
 app.use('/api/dashboard', DashboardRoutes); // Dashboard-related routes
 app.use('/api/amenities', amenityRoutes);
 
-// Register the error handling middleware at the end of the middleware stack
 // This will catch any upload errors occurring in the preceding routes
 app.use(handleUploadError);
 

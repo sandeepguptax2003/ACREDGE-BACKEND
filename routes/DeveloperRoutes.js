@@ -15,7 +15,6 @@ router.post('/', isAuthenticated, upload.fields(uploadFields), developerControll
 // Route to retrieve all developers
 router.get('/', isAuthenticated, developerController.getAllDevelopers);
 
-// User access (from acredge.in domain)
 router.get('/public', verifyUserForAdminRoutes, developerController.getAllDevelopers);
 
 // Route to retrieve a specific developer by their ID
