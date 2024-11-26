@@ -36,14 +36,13 @@ app.use(bodyParser.json());
 app.use(
   cors({
     origin: [
+      true,
       'https://admin-acredge-a801b.web.app',
       'http://localhost:3000',
       'http://127.0.0.1:3000'
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-    exposedHeaders: ['Set-Cookie']
   })
 );
 
