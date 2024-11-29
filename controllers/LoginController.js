@@ -102,6 +102,7 @@ exports.verifyOTP = async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
+      path: '/',
       maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
     });
 
@@ -115,38 +116,59 @@ exports.verifyOTP = async (req, res) => {
 // Middleware to check authentication status via token
 exports.isAuthenticated = async (req, res, next) => {
   try {
+    // Debug logs
+    console.log('Cookies received:', req.cookies);
+    console.log('Auth header:', req.headers.authorization);
+
     // Extract token from cookies or authorization header
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    let token = req.cookies.token;
+    
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+    }
 
     if (!token) {
       return res.status(401).json({ message: "No token provided." });
     }
 
-    // Verify token with JWT and extract email
+    // Verify token
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // Verify role is ADMIN
+      if (decoded.role !== 'ADMIN') {
+        return res.status(403).json({ message: "Access denied. Admin only." });
+      }
     } catch (error) {
       return res.status(401).json({ message: "Invalid token." });
     }
 
-    // Check cache for token to improve performance
+    // Check cache
     const cachedToken = tokenCache.get(decoded.email);
     if (cachedToken === token) {
-      req.user = { email: decoded.email };
+      req.user = { email: decoded.email, role: decoded.role };
       return next();
     }
 
-    // Check Firestore if not in cache
-    const tokenDoc = await admin.firestore().collection('tokens').doc(decoded.email).get();
-    if (!tokenDoc.exists || tokenDoc.data().token !== token || tokenDoc.data().expiresAt.toDate() < new Date()) {
+    // Check Firestore
+    const tokenDoc = await admin.firestore()
+      .collection('tokens')
+      .doc(decoded.email)
+      .get();
+
+    if (!tokenDoc.exists || 
+        tokenDoc.data().token !== token || 
+        tokenDoc.data().expiresAt.toDate() < new Date()) {
       return res.status(401).json({ message: "Invalid or expired token." });
     }
 
-    // Cache valid token for subsequent requests
+    // Cache token
     tokenCache.set(decoded.email, token);
 
-    req.user = { email: decoded.email };
+    // Set user info
+    req.user = { email: decoded.email, role: decoded.role };
     next();
   } catch (error) {
     console.error('Error in isAuthenticated:', error);

@@ -1,7 +1,16 @@
 const jwt = require('jsonwebtoken');
 
 exports.verifyUserForAdminRoutes = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+  console.log('Cookies received:', req.cookies);
+  console.log('Auth header:', req.headers.authorization);
+
+  // Get token from cookie or Authorization header
+  let token = req.cookies.token;
+  
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+  }
 
   if (!token) {
     return res.status(401).json({ message: "No token provided." });
@@ -23,7 +32,16 @@ exports.verifyUserForAdminRoutes = (req, res, next) => {
 };
 
 exports.verifyAdminForUserRoutes = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+  console.log('Cookies received:', req.cookies);
+  console.log('Auth header:', req.headers.authorization);
+
+  // Get token from cookie or Authorization header
+  let token = req.cookies.token;
+  
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+  }
 
   if (!token) {
     return res.status(401).json({ message: "No token provided." });

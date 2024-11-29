@@ -15,7 +15,17 @@ router.post('/', isAuthenticated, upload.fields(uploadFields), developerControll
 // Route to retrieve all developers
 router.get('/', isAuthenticated, developerController.getAllDevelopers);
 
-router.get('/public', verifyUserForAdminRoutes, developerController.getAllDevelopers);
+// router.get('/public', verifyUserForAdminRoutes, developerController.getAllDevelopers);
+
+router.get('/public', 
+    (req, res, next) => {
+        console.log('Cookies:', req.cookies);
+        console.log('Authorization Header:', req.headers.authorization);
+        next();
+    }, 
+    verifyUserForAdminRoutes, 
+    developerController.getAllDevelopers
+);
 
 // Route to retrieve a specific developer by their ID
 router.get('/:id', isAuthenticated, developerController.getDeveloperById);
