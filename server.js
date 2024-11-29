@@ -25,26 +25,11 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 
 // Configure CORS settings
-// app.use(
-//   cors({
-//     origin: true, // Allow requests from any origin
-//     credentials: true, // Allow credentials to be included in requests
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
-//   })
-// );
-
 app.use(
   cors({
-    origin: [
-      'http://acredge-main-site.onrender.com',
-      'https://acredge-main-site.onrender.com',
-      'http://127.0.0.1:3000',
-      'http://localhost:3000'
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-    exposedHeaders: ['Set-Cookie']
+    origin: true, // Allow requests from any origin
+    credentials: true, // Allow credentials to be included in requests
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Supported HTTP methods
   })
 );
 

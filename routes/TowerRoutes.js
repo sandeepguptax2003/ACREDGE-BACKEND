@@ -5,8 +5,6 @@ const towerController = require('../controllers/TowerController');
 
 const { isAuthenticated } = require('../controllers/LoginController');
 
-const { verifyUserForAdminRoutes } = require('../shared/crossSiteAuth');
-
 // Route to create a new tower
 // This route is protected and requires the user to be authenticated
 router.post('/', isAuthenticated, towerController.createTower);
@@ -14,8 +12,6 @@ router.post('/', isAuthenticated, towerController.createTower);
 // Route to retrieve all towers
 // This route is also protected, ensuring that only authenticated users can access the list of towers
 router.get('/', isAuthenticated, towerController.getAllTowers);
-
-router.get('/public',verifyUserForAdminRoutes, towerController.getAllTowers);
 
 // Route to retrieve a specific tower by its ID
 // This allows authenticated users to access detailed information about a particular tower
@@ -30,3 +26,7 @@ router.put('/:id', isAuthenticated, towerController.updateTower);
 // router.delete('/:id', isAuthenticated, towerController.deleteTower);
 
 module.exports = router;
+
+
+// const { verifyUserForAdminRoutes } = require('../shared/crossSiteAuth');
+// router.get('/public',verifyUserForAdminRoutes, towerController.getAllTowers);

@@ -7,39 +7,11 @@ const { isAuthenticated } = require('../controllers/LoginController');
 
 const { upload, uploadFields } = require('../middleware/UploadMiddleware');
 
-const { verifyUserForAdminRoutes } = require('../shared/crossSiteAuth');
-
 // Route to create a new developer and handles file uploads
 router.post('/', isAuthenticated, upload.fields(uploadFields), developerController.createDeveloper);
 
 // Route to retrieve all developers
 router.get('/', isAuthenticated, developerController.getAllDevelopers);
-
-// router.get('/public', verifyUserForAdminRoutes, developerController.getAllDevelopers);
-
-router.get('/public', 
-    (req, res, next) => {
-        console.log('Cookies:', req.cookies);
-        console.log('Authorization Header:', req.headers.authorization);
-        next();
-    }, 
-    verifyUserForAdminRoutes, 
-    developerController.getAllDevelopers
-);
-
-router.get('/test-cookies', (req, res) => {
-    console.log('Test endpoint - All cookies:', req.cookies);
-    console.log('Test endpoint - Headers:', req.headers);
-    res.json({
-      cookiesReceived: req.cookies,
-      hasToken: !!req.cookies.token,
-      headers: {
-        cookie: req.headers.cookie,
-        origin: req.headers.origin,
-        host: req.headers.host
-      }
-    });
-  });
 
 // Route to retrieve a specific developer by their ID
 router.get('/:id', isAuthenticated, developerController.getDeveloperById);
@@ -51,3 +23,17 @@ router.put('/:id', isAuthenticated, upload.fields(uploadFields), developerContro
 // router.delete('/:id', isAuthenticated, developerController.deleteDeveloper);
 
 module.exports = router;
+
+
+
+// const { verifyUserForAdminRoutes } = require('../shared/crossSiteAuth');
+
+// router.get('/public', 
+//     (req, res, next) => {
+//         console.log('Cookies:', req.cookies);
+//         console.log('Authorization Header:', req.headers.authorization);
+//         next();
+//     }, 
+//     verifyUserForAdminRoutes, 
+//     developerController.getAllDevelopers
+// );
