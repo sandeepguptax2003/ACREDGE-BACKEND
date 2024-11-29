@@ -27,6 +27,20 @@ router.get('/public',
     developerController.getAllDevelopers
 );
 
+router.get('/test-cookies', (req, res) => {
+    console.log('Test endpoint - All cookies:', req.cookies);
+    console.log('Test endpoint - Headers:', req.headers);
+    res.json({
+      cookiesReceived: req.cookies,
+      hasToken: !!req.cookies.token,
+      headers: {
+        cookie: req.headers.cookie,
+        origin: req.headers.origin,
+        host: req.headers.host
+      }
+    });
+  });
+
 // Route to retrieve a specific developer by their ID
 router.get('/:id', isAuthenticated, developerController.getDeveloperById);
 

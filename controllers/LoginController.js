@@ -106,6 +106,9 @@ exports.verifyOTP = async (req, res) => {
       maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
     });
 
+    res.setHeader('Debug-Cookie-Set', 'true');
+console.log('Setting cookie with token:', token);
+
     res.status(200).json({ message: "Logged in successfully" });
   } catch (error) {
     console.error('Error in verifyOTP:', error);
