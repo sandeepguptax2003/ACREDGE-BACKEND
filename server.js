@@ -37,7 +37,9 @@ app.use(
   cors({
     origin: [
       true,
-      'https://admin-acredge-a801b.web.app',
+      'https://acredge-web--acredge-app-252ab.asia-east1.hosted.app',
+      'https://admin-acredge-a801b.web.app/',
+      'http://localhost:8000',
       'http://localhost:3000',
       'http://127.0.0.1:3000'
     ],

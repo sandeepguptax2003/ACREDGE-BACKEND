@@ -87,7 +87,8 @@ exports.verifyOTP = async (req, res) => {
 
     // Set token expiration based on 'rememberMe' flag
     const expiresIn = rememberMe ? '7d' : '24h';
-    const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn });
+
+    const token = jwt.sign({ email, role: 'ADMIN' }, process.env.JWT_SECRET, { expiresIn });
 
     // Set token expiration date for Firestore storage
     const expirationDate = new Date(Date.now() + (rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000));
